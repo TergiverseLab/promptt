@@ -887,9 +887,10 @@ async function genStory(isRT){
   const modeLabel=isF?'FOLKLORE · CUENTO':'CONTEMPORÁNEO';
   const styleBlock=isF?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Fórmulas orales. Personajes arquetípicos. Mundo mágico. Cierra con moraleja explícita.':'ESTILO: Relato contemporáneo. Personajes psicológicos. Ambientación concreta. SIN moraleja. Cierre emocionalmente resolutivo.';
   const jsonSchema='{"paragraphs":[{"func":"Nombre función","text":"Texto párrafo"}],'+(isF?'"moralia":"texto"':'"moralia":""')+'}';
+  const geminiNote=model==='gemini'?'\n- IMPORTANTE: máximo 50 palabras por párrafo, relato total máximo 300 palabras':'';
   let prompt;
   if(isRT&&curStory){prompt='Reescribe esta historia con el NUEVO ORDEN de funciones. Mismos personajes y mundo, trama adaptada.\n\nHISTORIA:\n'+curStory.raw+'\n\nNUEVO ORDEN:\n'+funcs+'\n\n'+styleBlock+'\n\nSOLO JSON:\n'+jsonSchema;}
-  else{prompt='Compón un relato con estas funciones de Propp/Rodari. UN PÁRRAFO POR FUNCIÓN en orden exacto.\n\nFUNCIONES:\n'+funcs+'\n\n- Inicio, desarrollo, cierre completo\n- Personajes con nombres, coherentes\n- NO menciones las funciones\n- 300-420 palabras\n\n'+styleBlock+'\n\nSOLO JSON:\n'+jsonSchema;}
+  else{prompt='Compón un relato con estas funciones de Propp/Rodari. UN PÁRRAFO POR FUNCIÓN en orden exacto.\n\nFUNCIONES:\n'+funcs+'\n\n- Inicio, desarrollo, cierre completo\n- Personajes con nombres, coherentes\n- NO menciones las funciones\n- 300-420 palabras'+geminiNote+'\n\n'+styleBlock+'\n\nSOLO JSON:\n'+jsonSchema;}
   isGen=true;showTab('story');resetStory();
   document.getElementById('story-placeholder').style.display='none';
   document.getElementById('story-generating').style.display='block';
@@ -907,11 +908,13 @@ async function genStory(isRT){
       const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'mistral-large-latest',messages:[{role:'user',content:prompt}],max_tokens:1200})});
       const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));raw=d.choices[0].message.content;
     }else if(model==='gemini'){
-      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:2000}})});
+      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:4000,thinkingConfig:{thinkingBudget:0}}})});
       const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
-      // Gemini 2.5 Flash es un modelo thinking con múltiples parts — recogemos todo el texto
+      // Filtrar partes de pensamiento (thought:true) y quedarse solo con texto de respuesta
       const parts=d.candidates[0].content.parts||[];
-      raw=parts.filter(p=>p.text).map(p=>p.text).join('');
+      raw=parts.filter(p=>p.text&&!p.thought).map(p=>p.text).join('');
+      // Sanear comillas tipográficas que rompen JSON.parse
+      raw=raw.replace(/[\u201C\u201D]/g,'"').replace(/[\u2018\u2019]/g,"'");
     }
     let parsed;
     try{
