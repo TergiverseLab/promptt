@@ -346,6 +346,7 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
         <span id="scr-label">Scriptorium</span>
         <div class="scr-row">
           <input type="text" id="api-key" placeholder="API key Groq…" autocomplete="off" spellcheck="false">
+          <button id="btn-save-key" class="btn btn-lt btn-sm" title="Guardar API key en este navegador" style="height:38px;flex-shrink:0">💾</button>
           <a id="api-link" href="https://console.groq.com/keys" target="_blank" class="btn btn-lt btn-sm" title="Obtener API key" style="height:38px;display:inline-flex;align-items:center;text-decoration:none;flex-shrink:0">🔑</a>
           <select id="model-sel"><option value="groq">Llama 3.3 · Groq (gratis)</option><option value="mistral">Mistral Large · Mistral (gratis)</option><option value="gemini">Gemini 2.5 Flash · Google</option><option value="claude">Claude Sonnet 4.6 · Anthropic</option></select>
           <select id="mode-sel"><option value="folklore">Folklore · Cuento</option><option value="contemporary">Contemporáneo</option></select>
@@ -887,10 +888,9 @@ async function genStory(isRT){
   const modeLabel=isF?'FOLKLORE · CUENTO':'CONTEMPORÁNEO';
   const styleBlock=isF?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Fórmulas orales. Personajes arquetípicos. Mundo mágico. Cierra con moraleja explícita.':'ESTILO: Relato contemporáneo. Personajes psicológicos. Ambientación concreta. SIN moraleja. Cierre emocionalmente resolutivo.';
   const jsonSchema='{"paragraphs":[{"func":"Nombre función","text":"Texto párrafo"}],'+(isF?'"moralia":"texto"':'"moralia":""')+'}';
-  const geminiNote=model==='gemini'?'\n- IMPORTANTE: máximo 50 palabras por párrafo, relato total máximo 300 palabras':'';
   let prompt;
   if(isRT&&curStory){prompt='Reescribe esta historia con el NUEVO ORDEN de funciones. Mismos personajes y mundo, trama adaptada.\n\nHISTORIA:\n'+curStory.raw+'\n\nNUEVO ORDEN:\n'+funcs+'\n\n'+styleBlock+'\n\nSOLO JSON:\n'+jsonSchema;}
-  else{prompt='Compón un relato con estas funciones de Propp/Rodari. UN PÁRRAFO POR FUNCIÓN en orden exacto.\n\nFUNCIONES:\n'+funcs+'\n\n- Inicio, desarrollo, cierre completo\n- Personajes con nombres, coherentes\n- NO menciones las funciones\n- 300-420 palabras'+geminiNote+'\n\n'+styleBlock+'\n\nSOLO JSON:\n'+jsonSchema;}
+  else{prompt='Compón un relato con estas funciones de Propp/Rodari. UN PÁRRAFO POR FUNCIÓN en orden exacto.\n\nFUNCIONES:\n'+funcs+'\n\n- Inicio, desarrollo, cierre completo\n- Personajes con nombres, coherentes\n- NO menciones las funciones\n- 300-420 palabras\n\n'+styleBlock+'\n\nSOLO JSON. RESPONDE ÚNICAMENTE CON EL JSON, SIN TEXTO ADICIONAL, SIN BLOQUES DE CÓDIGO, SIN COMILLAS EXTRAS:\n'+jsonSchema;}
   isGen=true;showTab('story');resetStory();
   document.getElementById('story-placeholder').style.display='none';
   document.getElementById('story-generating').style.display='block';
@@ -942,10 +942,26 @@ async function genStory(isRT){
 }
 
 const API_LINKS={groq:'https://console.groq.com/keys',mistral:'https://console.mistral.ai/api-keys/',gemini:'https://aistudio.google.com/app/apikey',claude:'https://console.anthropic.com/settings/keys'};
+const API_PLACEHOLDERS={groq:'API key Groq…',mistral:'API key Mistral…',gemini:'API key Google…',claude:'API key Anthropic…'};
+
+function loadSavedKey(model){
+  try{const k=localStorage.getItem('ppc_key_'+model);if(k){document.getElementById('api-key').value=k;}}catch(e){}
+}
+function saveCurrentKey(){
+  const model=document.getElementById('model-sel').value;
+  const key=document.getElementById('api-key').value.trim();
+  try{localStorage.setItem('ppc_key_'+model,key);
+    const btn=document.getElementById('btn-save-key');btn.textContent='✓';setTimeout(()=>btn.textContent='💾',1500);
+  }catch(e){}
+}
+document.getElementById('btn-save-key').addEventListener('click',saveCurrentKey);
 document.getElementById('model-sel').addEventListener('change',function(){
   document.getElementById('api-link').href=API_LINKS[this.value]||'#';
-  document.getElementById('api-key').placeholder={groq:'API key Groq…',mistral:'API key Mistral…',gemini:'API key Google…',claude:'API key Anthropic…'}[this.value]||'Clave API…';
+  document.getElementById('api-key').placeholder=API_PLACEHOLDERS[this.value]||'Clave API…';
+  loadSavedKey(this.value);
 });
+// Cargar key guardada del modelo inicial al arrancar
+loadSavedKey('groq');
 
 init();
 </script>
