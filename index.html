@@ -252,7 +252,7 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
 
 <div id="header">
   <div class="brand">
-    <img id="brand-logo" src="logo promppt.png" alt="PRO(m)PP(t)">
+    <img id="brand-logo" src="logo_promppt.png" alt="PRO(m)PP(t)">
   </div>
   <div id="seq"><span class="empty">Arrastra cartas a la línea narrativa…</span></div>
 </div>
@@ -346,7 +346,8 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
         <span id="scr-label">Scriptorium</span>
         <div class="scr-row">
           <input type="text" id="api-key" placeholder="Clave API…" autocomplete="off" spellcheck="false">
-          <select id="model-sel"><option value="claude">Claude · Anthropic</option><option value="grok">Grok · xAI</option></select>
+          <a id="api-link" href="https://console.anthropic.com/settings/keys" target="_blank" class="btn btn-lt btn-sm" title="Obtener API key" style="height:38px;display:inline-flex;align-items:center;text-decoration:none;flex-shrink:0">🔑</a>
+          <select id="model-sel"><option value="groq">Llama 3.3 · Groq (gratis)</option><option value="mistral">Mistral Large · Mistral (gratis)</option><option value="gemini">Gemini 2.5 Flash · Google</option><option value="claude">Claude Sonnet 4.6 · Anthropic</option></select>
           <select id="mode-sel"><option value="folklore">Folklore · Cuento</option><option value="contemporary">Contemporáneo</option></select>
           <button class="btn btn-dk scr-btn" id="btn-compose">⚜ Componer</button>
           <button class="btn btn-lt scr-btn" id="btn-clear">✕ Limpiar</button>
@@ -514,7 +515,7 @@ const CARDS_DATA = [
   { id: "marca", title: "Marca", propp: "El héroe recibe una señal distintiva —herida, cicatriz, sello, anillo, objeto único— que queda ligada a su identidad y servirá más adelante como prueba material de reconocimiento o de lo vivido.", rodari: "Motor lúdico: la marca puede ser una palabra pegadiza, un tic, un apodo, un objeto absurdo o una huella de imaginación que reaparece como leitmotiv. También puede subvertirse: la marca se falsifica, todos la llevan, o cambia de sitio, generando humor, giro o crítica.", campbell: "Equivale a la herida del héroe o al don obtenido tras las Pruebas y el encuentro con el mentor: un cambio visible (cicatriz, estigma, objeto, título) que evidencia la transformación y actúa como trofeo que autentifica el viaje en el Retorno.", example: "Ulises es reconocido por la cicatriz del jabalí. Frodo lleva el dedo amputado. Caperucita guarda la piedra en el vientre del lobo como prueba." },
 ];
 
-const LOGO_IMG = "logo promppt.png";
+const LOGO_IMG = "logo_promppt.png";
 
 
 const NARRATIVE_GROUPS={
@@ -897,11 +898,17 @@ async function genStory(isRT){
   try{
     let raw='';
     if(model==='claude'){
-      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,messages:[{role:'user',content:prompt}]})});
+      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1200,messages:[{role:'user',content:prompt}]})});
       const d=await r.json();if(d.error)throw new Error(d.error.message);raw=d.content[0].text;
-    }else{
-      const r=await fetch('https://api.x.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'grok-3-latest',messages:[{role:'user',content:prompt}],max_tokens:1200})});
+    }else if(model==='groq'){
+      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:1200})});
       const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));raw=d.choices[0].message.content;
+    }else if(model==='mistral'){
+      const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'mistral-large-latest',messages:[{role:'user',content:prompt}],max_tokens:1200})});
+      const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));raw=d.choices[0].message.content;
+    }else if(model==='gemini'){
+      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1200}})});
+      const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));raw=d.candidates[0].content.parts[0].text;
     }
     let parsed;try{const clean=raw.replace(/^```(?:json)?\s*/m,'').replace(/```\s*$/m,'').trim();parsed=JSON.parse(clean);}
     catch(e){parsed={paragraphs:[{func:'',text:raw}],moralia:''};}
@@ -921,6 +928,12 @@ async function genStory(isRT){
   }
   isGen=false;if(rtPending&&rtEnabled){rtPending=false;schedRT();}
 }
+
+const API_LINKS={groq:'https://console.groq.com/keys',mistral:'https://console.mistral.ai/api-keys/',gemini:'https://aistudio.google.com/app/apikey',claude:'https://console.anthropic.com/settings/keys'};
+document.getElementById('model-sel').addEventListener('change',function(){
+  document.getElementById('api-link').href=API_LINKS[this.value]||'#';
+  document.getElementById('api-key').placeholder={groq:'API key Groq…',mistral:'API key Mistral…',gemini:'API key Google…',claude:'API key Anthropic…'}[this.value]||'Clave API…';
+});
 
 init();
 </script>
