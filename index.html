@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRO(m)PP(t)</title>
+<link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Cinzel:wght@400;600;900&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --white:#ffffff;
+  --paper:#f8f5ee;
+  --paper-dk:#ece6d8;
+  --rule:#b0a48c;
+  --ink-lt:#6a6050;
+  --ink:#2a2418;
+  --black:#0e0c08;
+  --deck-w:140px;
+  --sidebar-w:300px;
+  --bottom-h:340px;
+}
+
+/* ── LAYOUT ── */
+body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(--ink);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#header{background:var(--white);border-bottom:3px double var(--ink);padding:0 20px;display:flex;align-items:center;gap:16px;height:132px;flex-shrink:0}
+.brand{display:flex;align-items:center;flex-shrink:0}
+#brand-logo{height:120px;width:auto;display:block}
+#seq{flex:1;font-family:"Cinzel",serif;font-size:11px;color:var(--ink-lt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.8px;min-width:0}
+#seq .sep{color:var(--rule);margin:0 5px}
+#seq .empty{font-style:italic;font-family:"EB Garamond",serif;font-size:13px;color:var(--rule)}
+#main{display:flex;flex:1;min-height:0;overflow:hidden}
+
+/* ── BUTTONS ── */
+.btn{padding:7px 14px;border:2px solid var(--ink);cursor:pointer;font-family:"Cinzel",serif;font-size:10px;font-weight:600;letter-spacing:0.8px;transition:all 0.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.btn-dk{background:var(--black);color:var(--white);border-color:var(--black)}.btn-dk:hover{background:var(--ink)}
+.btn-lt{background:var(--white);color:var(--black);border-color:var(--ink)}.btn-lt:hover{background:var(--paper)}
+.btn-sm{font-size:9px;padding:4px 10px;border-width:1px}
+
+/* ── RIVET CORNERS ── */
+.rv::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(circle 4px at 10px 10px,var(--ink) 50%,transparent 51%),
+  radial-gradient(circle 4px at calc(100% - 10px) 10px,var(--ink) 50%,transparent 51%),
+  radial-gradient(circle 4px at 10px calc(100% - 10px),var(--ink) 50%,transparent 51%),
+  radial-gradient(circle 4px at calc(100% - 10px) calc(100% - 10px),var(--ink) 50%,transparent 51%)}
+.rv-lt::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(circle 4px at 10px 10px,var(--rule) 50%,transparent 51%),
+  radial-gradient(circle 4px at calc(100% - 10px) 10px,var(--rule) 50%,transparent 51%),
+  radial-gradient(circle 4px at 10px calc(100% - 10px),var(--rule) 50%,transparent 51%),
+  radial-gradient(circle 4px at calc(100% - 10px) calc(100% - 10px),var(--rule) 50%,transparent 51%)}
+
+/* ── DECK PANEL ── */
+#deck-panel{width:var(--deck-w);background:var(--white);border-right:3px double var(--ink);display:flex;flex-direction:column;align-items:center;padding:16px 8px 10px;gap:10px;flex-shrink:0;position:relative;overflow:hidden}
+#deck-panel h3{font-family:"Cinzel",serif;font-size:10px;color:var(--ink-lt);text-transform:uppercase;letter-spacing:2.5px;z-index:2}
+#deck-stack{position:relative;width:86px;height:120px;cursor:grab;user-select:none;z-index:2;flex-shrink:0}
+#deck-stack:active{cursor:grabbing}
+.dshadow{position:absolute;width:82px;height:116px;background:var(--paper-dk);border:1px solid var(--rule)}
+.dshadow:nth-child(1){top:4px;left:4px}.dshadow:nth-child(2){top:2px;left:2px}
+#deck-top{position:absolute;top:0;left:0;width:82px;height:116px;background:var(--paper);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;transition:transform 0.15s,box-shadow 0.15s;overflow:hidden;z-index:3}
+#deck-top::before{content:"";position:absolute;inset:5px;border:1px solid var(--rule);pointer-events:none}
+#deck-top:hover{transform:translateY(-5px) rotate(-1.5deg);box-shadow:5px 8px 0 var(--ink)}
+#deck-top img{width:64px;opacity:0.65;filter:grayscale(1)}
+@keyframes shuffleA{0%{transform:none}20%{transform:translateX(-14px) rotate(-7deg)}40%{transform:translateX(16px) rotate(5deg)}60%{transform:translateX(-9px) rotate(-3deg)}80%{transform:translateX(7px) rotate(2deg)}100%{transform:none}}
+#deck-stack.shuffling #deck-top{animation:shuffleA 0.55s ease-in-out}
+#deck-stack.shuffling .dshadow:nth-child(1){animation:shuffleA 0.55s ease-in-out 0.06s}
+#deck-stack.shuffling .dshadow:nth-child(2){animation:shuffleA 0.55s ease-in-out 0.12s}
+#deck-count{font-family:"Cinzel",serif;font-size:30px;font-weight:900;color:var(--black);line-height:1;z-index:2}
+#deck-lbl{font-family:"Cinzel",serif;font-size:9px;color:var(--rule);letter-spacing:2px;margin-top:-5px;z-index:2}
+#deck-panel .btn{width:112px;justify-content:center;z-index:2;font-size:9px;padding:6px 0}
+
+/* ── CENTER ── */
+#center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ── TABLE (upper half) ── */
+#table{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--paper);border-bottom:3px double var(--ink);position:relative;min-height:0}
+.t-orn{position:absolute;font-size:18px;color:var(--rule);pointer-events:none;z-index:1;line-height:1;opacity:0.5}
+#to-tl{top:40px;left:10px}#to-tr{top:40px;right:10px}#to-bl{bottom:8px;left:10px}#to-br{bottom:8px;right:10px}
+
+/* Table tabs */
+#ttabs{display:flex;flex-shrink:0;background:var(--white);border-bottom:3px double var(--ink);z-index:2;position:relative}
+.ttab{padding:11px 22px;font-family:"Cinzel",serif;font-size:11px;font-weight:600;color:var(--rule);cursor:pointer;border-bottom:3px solid transparent;letter-spacing:1.2px;transition:all 0.15s;border-right:1px solid var(--rule)}
+.ttab.active{color:var(--black);border-bottom-color:var(--black);background:var(--paper)}
+.ttab:hover:not(.active){color:var(--ink)}
+
+/* ── KEY: panels are display:none by default, flex when active ── */
+.tpanel{display:none;flex:1;overflow:hidden;min-height:0}
+.tpanel.active{display:flex;flex-direction:column}
+
+/* Card panel */
+#panel-card{align-items:center;justify-content:center;background:var(--paper)}
+#table-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;pointer-events:none;transition:opacity 0.3s}
+#table-hint img{width:70px;opacity:0.06;filter:grayscale(1)}
+#table-hint p{font-family:"Cinzel",serif;font-size:11px;color:var(--rule);letter-spacing:2px;text-align:center;line-height:2.2}
+#table-hint.hidden{opacity:0}
+#card-preview{display:flex;flex-direction:column;align-items:center;gap:12px;opacity:0;transition:opacity 0.3s;pointer-events:none;position:relative;z-index:2}
+#card-preview.visible{opacity:1;pointer-events:all}
+#card-frame{background:var(--white);border:3px solid var(--black);box-shadow:8px 8px 0 var(--ink);position:relative;padding:8px}
+#card-frame::before{content:"";position:absolute;inset:4px;border:1px solid var(--rule);pointer-events:none;z-index:1}
+#card-frame::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:radial-gradient(circle 5px at 12px 12px,var(--ink) 50%,transparent 51%),radial-gradient(circle 5px at calc(100% - 12px) 12px,var(--ink) 50%,transparent 51%),radial-gradient(circle 5px at 12px calc(100% - 12px),var(--ink) 50%,transparent 51%),radial-gradient(circle 5px at calc(100% - 12px) calc(100% - 12px),var(--ink) 50%,transparent 51%)}
+#card-preview-img{width:220px;display:block;cursor:pointer;position:relative;z-index:0;transition:filter 0.2s}
+#card-preview-img:hover{filter:brightness(1.04)}
+#card-preview-title{font-family:"UnifrakturMaguntia",serif;font-size:28px;color:var(--black);letter-spacing:1px}
+#ver-nav{display:none;align-items:center;gap:12px}
+#ver-lbl{font-family:"Cinzel",serif;font-size:11px;color:var(--ink-lt);letter-spacing:1px}
+
+/* Spread panel — scrollable inner content */
+#panel-spread{background:var(--paper)}
+#spread-toolbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:2px solid var(--ink);background:var(--white);flex-shrink:0;flex-wrap:wrap}
+#spread-toolbar-lbl{font-family:"Cinzel",serif;font-size:9px;color:var(--ink-lt);letter-spacing:2px;flex-shrink:0}
+#spread-sort-btns{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.ssb{font-family:"Cinzel",serif;font-size:9px;padding:4px 10px;border:1px solid var(--ink);background:var(--paper);color:var(--ink-lt);cursor:pointer;letter-spacing:0.5px;display:inline-flex;align-items:center;gap:5px;transition:all 0.15s}
+.ssb:hover{background:var(--paper-dk);color:var(--ink)}
+.ssb.active{background:var(--black);color:var(--white);border-color:var(--black)}
+.ssb.active .sdot{border-color:var(--white)}
+.sdot{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--ink-lt);flex-shrink:0;display:inline-block}
+.sdot-g{background:#555}.sdot-o{background:#888}.sdot-b{background:#333}
+#spread-scroll{flex:1;overflow-y:auto;padding:16px;min-height:0}
+#spread-scroll::-webkit-scrollbar{width:4px}
+#spread-scroll::-webkit-scrollbar-thumb{background:var(--ink)}
+#spread-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.spread-section{width:100%;margin-bottom:12px}
+.spread-section-title{font-family:"Cinzel",serif;font-size:9px;color:var(--ink-lt);letter-spacing:2px;text-transform:uppercase;padding:4px 0 6px;border-bottom:1px solid var(--rule);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.spread-cards-row{display:flex;flex-wrap:wrap;gap:8px}
+.spread-card{width:80px;height:116px;border:2px solid var(--ink);cursor:pointer;overflow:hidden;position:relative;transition:transform 0.15s,box-shadow 0.15s;flex-shrink:0;background:var(--white);box-shadow:3px 3px 0 var(--ink)}
+.spread-card:hover{transform:translateY(-4px);box-shadow:5px 7px 0 var(--ink)}
+.spread-card.in-tl{opacity:0.35}
+.spread-card img{width:100%;height:100%;object-fit:cover;display:block}
+.spread-card-name{position:absolute;bottom:0;left:0;right:0;background:rgba(14,12,8,0.88);color:var(--white);font-family:"Cinzel",serif;font-size:6.5px;letter-spacing:0.5px;padding:3px 4px;text-align:center}
+
+/* Story panel — scrollable */
+#panel-story{background:var(--paper)}
+#story-scroll{flex:1;overflow-y:auto;padding:22px 32px 24px}
+#story-scroll::-webkit-scrollbar{width:4px}
+#story-scroll::-webkit-scrollbar-thumb{background:var(--ink)}
+#story-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--ink)}
+#story-funcs{font-family:"Cinzel",serif;font-size:9px;color:var(--ink-lt);letter-spacing:0.8px;flex:1;line-height:1.8}
+#story-badge{font-family:"Cinzel",serif;font-size:9px;padding:4px 12px;border:2px solid var(--ink);color:var(--black);letter-spacing:1px;flex-shrink:0}
+#story-body{max-width:640px;margin:0 auto}
+.story-para{margin-bottom:20px;padding-left:16px;position:relative}
+.story-para::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:2px;background:repeating-linear-gradient(180deg,var(--ink) 0,var(--ink) 4px,transparent 4px,transparent 8px)}
+.story-func-tag{font-family:"Cinzel",serif;font-size:8px;color:var(--ink-lt);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:3px}
+.story-para-text{font-family:"EB Garamond",Georgia,serif;font-size:16px;line-height:1.9;color:var(--black)}
+.story-para:first-child .story-para-text::first-letter{font-family:"UnifrakturMaguntia",serif;font-size:3.5em;float:left;line-height:0.78;margin-right:6px;margin-top:6px;color:var(--black)}
+#story-placeholder{font-family:"EB Garamond",serif;font-size:15px;font-style:italic;color:var(--rule);text-align:center;padding:36px 0}
+@keyframes inkP{0%,100%{opacity:0.4}50%{opacity:1}}
+#story-generating{font-family:"EB Garamond",serif;font-size:15px;font-style:italic;color:var(--ink);text-align:center;padding:36px 0;display:none;animation:inkP 1.6s ease infinite}
+#story-moralia{margin-top:24px;padding:16px 20px;border:2px solid var(--ink);background:var(--paper-dk);display:none;position:relative}
+#story-moralia::before{content:"✦";position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--paper);padding:0 10px;font-size:14px;color:var(--ink)}
+#moralia-lbl{font-family:"Cinzel",serif;font-size:9px;color:var(--ink-lt);letter-spacing:2.5px;margin-bottom:6px}
+#moralia-text{font-family:"EB Garamond",serif;font-style:italic;font-size:15px;color:var(--black);line-height:1.65}
+
+/* ── BOTTOM SECTION ── */
+#bottom{height:var(--bottom-h);flex-shrink:0;display:flex;flex-direction:column;border-top:3px double var(--ink);background:var(--white)}
+#tl-wrap{flex:1;background:var(--paper-dk);border-bottom:2px solid var(--ink);display:flex;align-items:center;padding:0 12px;position:relative;min-height:0;overflow:hidden}
+#tl-label{position:absolute;top:6px;left:14px;font-family:"Cinzel",serif;font-size:9px;color:var(--ink-lt);letter-spacing:2.5px;z-index:2}
+#tl-wrap::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle 4px at 10px 10px,var(--ink) 50%,transparent 51%),radial-gradient(circle 4px at calc(100% - 10px) 10px,var(--ink) 50%,transparent 51%),radial-gradient(circle 4px at 10px calc(100% - 10px),var(--ink) 50%,transparent 51%),radial-gradient(circle 4px at calc(100% - 10px) calc(100% - 10px),var(--ink) 50%,transparent 51%)}
+#tl{display:flex;align-items:center;gap:7px;overflow-x:auto;padding:22px 4px 8px;flex:1;scrollbar-width:thin;scrollbar-color:var(--ink-lt) transparent;position:relative;z-index:2}
+#tl::-webkit-scrollbar{height:4px}
+#tl::-webkit-scrollbar-thumb{background:var(--ink-lt)}
+.tl-slot{flex-shrink:0;width:80px;height:120px;border:1px dashed var(--rule);display:flex;align-items:center;justify-content:center}
+.tl-slot.occupied{border:none}
+.tl-card{width:78px;height:118px;background:var(--white);border:2px solid var(--ink);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s,border-color 0.15s;position:relative;user-select:none;overflow:hidden}
+.tl-card:hover{transform:translateY(-7px) rotate(-0.5deg);box-shadow:4px 8px 0 var(--ink);border-color:var(--black);z-index:10}
+.tl-card.selected{border:3px solid var(--black);box-shadow:0 0 0 2px var(--rule),4px 8px 0 rgba(0,0,0,0.5)}
+.tl-card.dragging{opacity:0.18;transform:scale(0.9)}
+.tl-card img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.card-num{position:absolute;bottom:2px;left:2px;font-family:"Cinzel",serif;font-size:9px;font-weight:700;color:var(--black);background:rgba(248,245,238,0.94);padding:0 4px;line-height:1.5}
+.card-del{position:absolute;top:2px;right:2px;background:rgba(14,12,8,0.9);color:var(--white);border:none;width:18px;height:18px;font-size:10px;cursor:pointer;display:none;align-items:center;justify-content:center}
+.tl-card:hover .card-del{display:flex}
+.drop-ind{flex-shrink:0;width:4px;height:110px;background:transparent;transition:background 0.15s}
+.drop-ind.active{background:linear-gradient(180deg,transparent,var(--ink),transparent)}
+
+/* ── SCRIPTORIUM ── */
+#scriptorium{background:var(--white);border-top:2px solid var(--ink);flex-shrink:0;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;position:relative}
+#scriptorium::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;background:radial-gradient(circle 4px at 10px 10px,var(--ink) 50%,transparent 51%),radial-gradient(circle 4px at calc(100% - 10px) 10px,var(--ink) 50%,transparent 51%),radial-gradient(circle 4px at 10px calc(100% - 10px),var(--ink) 50%,transparent 51%),radial-gradient(circle 4px at calc(100% - 10px) calc(100% - 10px),var(--ink) 50%,transparent 51%)}
+#scr-label{font-family:"UnifrakturMaguntia",serif;font-size:22px;color:var(--black);flex-shrink:0;z-index:1;white-space:nowrap}
+.scr-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1;z-index:1;min-width:0}
+#api-key{flex:1;min-width:140px;background:var(--paper);border:2px solid var(--ink);color:var(--black);font-family:"EB Garamond",serif;font-size:14px;padding:6px 10px;height:38px}
+#api-key:focus{outline:2px solid var(--black);border-color:var(--black)}
+#model-sel,#mode-sel{background:var(--paper);border:2px solid var(--ink);color:var(--black);font-family:"Cinzel",serif;font-size:10px;padding:5px 8px;height:38px;letter-spacing:0.5px;flex-shrink:0}
+.scr-btn{height:38px;font-size:10px;padding:0 16px;z-index:1;flex-shrink:0}
+.rt-box{display:flex;align-items:center;gap:8px;flex-shrink:0;border:2px solid var(--ink);padding:6px 14px;background:var(--paper);z-index:1;height:38px}
+.rt-box label.rt-lbl{font-family:"Cinzel",serif;font-size:10px;color:var(--black);letter-spacing:1px;white-space:nowrap;cursor:pointer;user-select:none}
+.tog{position:relative;width:40px;height:20px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.tog-sl{position:absolute;cursor:pointer;inset:0;background:var(--paper-dk);border:2px solid var(--ink);transition:0.2s}
+.tog-sl::before{content:"";position:absolute;height:12px;width:12px;left:2px;bottom:2px;background:var(--ink);transition:0.2s}
+.tog input:checked+.tog-sl{background:var(--ink)}
+.tog input:checked+.tog-sl::before{transform:translateX(20px);background:var(--white)}
+#rt-status{font-family:"Cinzel",serif;font-size:9px;color:var(--rule);letter-spacing:1px;display:none;z-index:1;flex-shrink:0}
+#rt-status.on{display:block;color:var(--black);font-weight:700}
+
+/* ── SIDEBAR ── */
+#sidebar{width:var(--sidebar-w);background:var(--white);border-left:3px double var(--ink);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;position:relative}
+#sb-head{padding:14px 16px 12px;border-bottom:2px solid var(--ink);flex-shrink:0;position:relative}
+#sb-head::after{content:"─── ✦ ───";position:absolute;bottom:-9px;left:0;right:0;text-align:center;font-size:10px;color:var(--rule);letter-spacing:3px;font-family:"Cinzel",serif;background:var(--white);width:fit-content;margin:0 auto;padding:0 8px}
+#sb-title{font-family:"UnifrakturMaguntia",serif;font-size:24px;color:var(--black);letter-spacing:0.5px}
+#sb-sub{font-family:"Cinzel",serif;font-size:9px;color:var(--rule);letter-spacing:2px;margin-top:4px}
+.stab-bar{display:flex;border-bottom:2px solid var(--ink);flex-shrink:0;margin-top:10px;background:var(--paper-dk)}
+.stab{flex:1;padding:10px 3px;font-family:"Cinzel",serif;font-size:10px;font-weight:600;text-align:center;cursor:pointer;color:var(--rule);border-bottom:2px solid transparent;letter-spacing:0.8px;transition:all 0.15s;border-right:1px solid var(--rule)}
+.stab.active{color:var(--black);border-bottom-color:var(--black);background:var(--white)}
+.stab:hover:not(.active){color:var(--ink)}
+.stab-panel{display:none;flex:1;overflow-y:auto;padding:14px 16px}
+.stab-panel.active{display:block}
+.stab-panel::-webkit-scrollbar{width:4px}
+.stab-panel::-webkit-scrollbar-thumb{background:var(--ink)}
+.sec-lbl{font-family:"Cinzel",serif;font-size:10px;color:var(--ink-lt);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center}
+.edit-btn{font-size:10px;cursor:pointer;color:var(--rule);font-family:"Cinzel",serif;letter-spacing:0.5px}
+.edit-btn:hover{color:var(--black)}
+.sb-text{font-family:"EB Garamond",Georgia,serif;font-size:15px;line-height:1.7;color:var(--ink)}
+.sb-italic{font-style:italic;color:var(--ink-lt)}
+.sb-example{margin-top:10px;padding:8px 12px;border-left:3px solid var(--ink);background:var(--paper)}
+.sb-ex-lbl{font-family:"Cinzel",serif;font-size:9px;color:var(--ink-lt);letter-spacing:1.5px;margin-bottom:4px}
+.edit-area{display:none;width:100%;background:var(--paper);border:1px solid var(--ink);color:var(--black);font-family:"EB Garamond",serif;font-size:13px;padding:6px 8px;resize:vertical;min-height:60px;margin-top:4px}
+.edit-area:focus{outline:1px solid var(--rule)}
+.ver-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ver-thumb{position:relative;width:56px;height:80px;border:2px solid var(--ink);overflow:hidden;cursor:pointer}
+.ver-thumb img{width:100%;height:100%;object-fit:cover}
+.ver-thumb.cur{border:3px solid var(--black);box-shadow:2px 2px 0 var(--ink)}
+.ver-num{position:absolute;bottom:1px;left:2px;font-family:"Cinzel",serif;font-size:8px;color:var(--white);background:rgba(14,12,8,0.85);padding:0 3px}
+.ver-del{position:absolute;top:1px;right:1px;background:rgba(14,12,8,0.9);color:var(--white);border:none;width:15px;height:15px;font-size:8px;cursor:pointer;display:none;align-items:center;justify-content:center}
+.ver-thumb:hover .ver-del{display:flex}
+.cfg-section{border:2px solid var(--ink);margin-bottom:10px;overflow:hidden}
+.cfg-head{font-family:"Cinzel",serif;font-size:10px;color:var(--ink-lt);letter-spacing:1.5px;padding:7px 10px;background:var(--paper-dk);border-bottom:1px solid var(--ink)}
+.cfg-body{padding:8px 10px}
+.cfg-body p{font-family:"EB Garamond",serif;font-size:13px;color:var(--ink-lt);margin-bottom:6px;line-height:1.5}
+.file-lbl{display:inline-block;padding:5px 12px;font-family:"Cinzel",serif;font-size:9px;border:2px solid var(--ink);color:var(--black);cursor:pointer;letter-spacing:1px;background:var(--paper)}
+.file-lbl:hover{background:var(--paper-dk)}
+.file-input{display:none}
+#sb-empty{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:20px}
+#sb-empty img{width:56px;opacity:0.1;filter:grayscale(1)}
+#sb-empty p{font-family:"Cinzel",serif;font-size:10px;color:var(--rule);letter-spacing:1.5px;text-align:center;line-height:2.4}
+
+/* ── FLOATER ── */
+#floater{position:fixed;pointer-events:none;z-index:1000;display:none;border:2px solid var(--black);overflow:hidden;transform:rotate(2.5deg);box-shadow:5px 5px 0 rgba(0,0,0,0.4)}
+#floater img{width:80px;height:116px;display:block}
+
+/* ── ADD CARD MODAL ── */
+#add-modal{position:fixed;inset:0;background:rgba(14,12,8,0.7);z-index:2000;display:none;align-items:center;justify-content:center}
+#add-modal.open{display:flex}
+#add-modal-box{background:var(--white);border:3px solid var(--black);box-shadow:10px 10px 0 var(--ink);padding:28px 32px;max-width:480px;width:90%;position:relative}
+#add-modal-box::before{content:"";position:absolute;inset:6px;border:1px solid var(--rule);pointer-events:none}
+#add-modal-box h2{font-family:"UnifrakturMaguntia",serif;font-size:26px;color:var(--black);margin-bottom:16px}
+.modal-field{margin-bottom:14px}
+.modal-field label{font-family:"Cinzel",serif;font-size:10px;color:var(--ink-lt);letter-spacing:1.5px;display:block;margin-bottom:5px}
+.modal-field input,.modal-field textarea{width:100%;background:var(--paper);border:2px solid var(--ink);color:var(--black);font-family:"EB Garamond",serif;font-size:14px;padding:8px 10px}
+.modal-field textarea{min-height:60px;resize:vertical}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="brand">
+    <img id="brand-logo" src="logo promppt.png" alt="PRO(m)PP(t)">
+  </div>
+  <div id="seq"><span class="empty">Arrastra cartas a la línea narrativa…</span></div>
+</div>
+
+<div id="main">
+  <div id="deck-panel">
+    <h3>Mazo</h3>
+    <div id="deck-stack">
+      <div class="dshadow"></div><div class="dshadow"></div>
+      <div id="deck-top"><img id="deck-logo" src="" alt=""></div>
+    </div>
+    <div id="deck-count">31</div>
+    <div id="deck-lbl">CARTAS</div>
+    <button class="btn btn-dk" id="btn-shuffle" style="margin-top:4px">⇌ Barajar</button>
+    <button class="btn btn-dk" id="btn-spread">⊞ Baraja</button>
+    <button class="btn btn-dk" id="btn-reset">↺ Reiniciar</button>
+  </div>
+
+  <div id="center">
+    <div id="table">
+      <span class="t-orn" id="to-tl">❧</span><span class="t-orn" id="to-tr">☙</span>
+      <span class="t-orn" id="to-bl">✦</span><span class="t-orn" id="to-br">✦</span>
+      <div id="ttabs">
+        <div class="ttab active" data-panel="card">✦ CARTA</div>
+        <div class="ttab" data-panel="spread">⊞ BARAJA</div>
+        <div class="ttab" data-panel="story">📜 RELATO</div>
+      </div>
+
+      <!-- CARTA panel -->
+      <div class="tpanel active" id="panel-card">
+        <div id="table-hint">
+          <img id="hint-logo" src="" alt="">
+          <p>ARRASTRA CARTAS DESDE EL MAZO<br>O DESPLIEGA LA BARAJA</p>
+        </div>
+        <div id="card-preview">
+          <div id="card-frame">
+            <img id="card-preview-img" src="" alt="" title="Clic → siguiente versión">
+          </div>
+          <div id="card-preview-title"></div>
+          <div id="ver-nav">
+            <button class="btn btn-lt btn-sm" onclick="cycleVer(-1)">&#8249;</button>
+            <span id="ver-lbl">1/1</span>
+            <button class="btn btn-lt btn-sm" onclick="cycleVer(1)">&#8250;</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BARAJA panel -->
+      <div class="tpanel" id="panel-spread">
+        <div id="spread-toolbar">
+          <span id="spread-toolbar-lbl">VER</span>
+          <div id="spread-sort-btns">
+            <button class="ssb active" data-phase="all" onclick="setSpreadView('all')">Todas</button>
+            <button class="ssb" data-phase="inicio" onclick="setSpreadView('inicio')"><span class="sdot sdot-g"></span>Principio</button>
+            <button class="ssb" data-phase="nudo" onclick="setSpreadView('nudo')"><span class="sdot sdot-o"></span>Nudo</button>
+            <button class="ssb" data-phase="desenlace" onclick="setSpreadView('desenlace')"><span class="sdot sdot-b"></span>Desenlace</button>
+            <button class="ssb" data-phase="order" onclick="setSpreadView('order')">✦ En orden narrativo</button>
+          </div>
+          <button class="btn btn-dk btn-sm" id="add-card-btn">+ Nueva carta</button>
+        </div>
+        <div id="spread-scroll">
+          <div id="spread-grid"></div>
+        </div>
+      </div>
+
+      <!-- RELATO panel -->
+      <div class="tpanel" id="panel-story">
+        <div id="story-scroll">
+          <div id="story-header">
+            <div id="story-funcs">—</div>
+            <div id="story-badge">—</div>
+          </div>
+          <div id="story-body">
+            <div id="story-placeholder">Coloca funciones en la secuencia narrativa y pulsa <em>Componer</em>.<br><small style="font-size:12px;opacity:0.5;display:block;margin-top:10px">Gramática creativa según Rodari sobre Propp.</small></div>
+            <div id="story-generating">✦ Componiendo el relato…</div>
+          </div>
+          <div id="story-moralia">
+            <div id="moralia-lbl">MORALEJA</div>
+            <div id="moralia-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="bottom">
+      <div id="tl-wrap">
+        <span id="tl-label">LÍNEA NARRATIVA</span>
+        <div id="tl"></div>
+      </div>
+      <div id="scriptorium">
+        <span id="scr-label">Scriptorium</span>
+        <div class="scr-row">
+          <input type="text" id="api-key" placeholder="Clave API…" autocomplete="off" spellcheck="false">
+          <select id="model-sel"><option value="claude">Claude · Anthropic</option><option value="grok">Grok · xAI</option></select>
+          <select id="mode-sel"><option value="folklore">Folklore · Cuento</option><option value="contemporary">Contemporáneo</option></select>
+          <button class="btn btn-dk scr-btn" id="btn-compose">⚜ Componer</button>
+          <button class="btn btn-lt scr-btn" id="btn-clear">✕ Limpiar</button>
+          <div class="rt-box">
+            <label class="tog" for="rt-sw"><input type="checkbox" id="rt-sw"><span class="tog-sl"></span></label>
+            <label class="rt-lbl" for="rt-sw">Tiempo real</label>
+          </div>
+          <span id="rt-status">● ACTIVO</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sidebar">
+    <div id="sb-head">
+      <div id="sb-title">PRO(m)PP(t)</div>
+      <div id="sb-sub">SELECCIONA UNA CARTA</div>
+    </div>
+    <div id="sb-content" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+      <div class="stab-bar">
+        <div class="stab active" data-stab="propp">PROPP</div>
+        <div class="stab" data-stab="rodari">RODARI</div>
+        <div class="stab" data-stab="campbell">CAMPBELL</div>
+        <div class="stab" data-stab="config">&#9881;</div>
+      </div>
+      <div class="stab-panel active" id="stab-propp">
+        <div class="sec-lbl">FUNCIÓN SEGÚN PROPP<span class="edit-btn" onclick="toggleEdit('propp')">✎ editar</span></div>
+        <p class="sb-text" id="txt-propp"></p>
+        <textarea class="edit-area" id="ea-propp" rows="3"></textarea>
+        <button class="btn btn-dk btn-sm" id="sv-propp" style="display:none;margin-top:5px" onclick="saveEdit('propp')">Guardar</button>
+        <div class="sb-example"><div class="sb-ex-lbl">EJEMPLO</div><p class="sb-text sb-italic" id="ex-propp"></p></div>
+      </div>
+      <div class="stab-panel" id="stab-rodari">
+        <div class="sec-lbl">INTERPRETACIÓN RODARI<span class="edit-btn" onclick="toggleEdit('rodari')">✎ editar</span></div>
+        <p class="sb-text" id="txt-rodari"></p>
+        <textarea class="edit-area" id="ea-rodari" rows="3"></textarea>
+        <button class="btn btn-dk btn-sm" id="sv-rodari" style="display:none;margin-top:5px" onclick="saveEdit('rodari')">Guardar</button>
+        <div class="sb-example"><div class="sb-ex-lbl">EJEMPLO</div><p class="sb-text sb-italic" id="ex-rodari"></p></div>
+      </div>
+      <div class="stab-panel" id="stab-campbell">
+        <div class="sec-lbl">CAMPBELL · HÉROE DE LAS MIL CARAS<span class="edit-btn" onclick="toggleEdit('campbell')">✎ editar</span></div>
+        <p class="sb-text" id="txt-campbell"></p>
+        <textarea class="edit-area" id="ea-campbell" rows="3"></textarea>
+        <button class="btn btn-dk btn-sm" id="sv-campbell" style="display:none;margin-top:5px" onclick="saveEdit('campbell')">Guardar</button>
+        <div class="sb-example"><div class="sb-ex-lbl">EJEMPLO</div><p class="sb-text sb-italic" id="ex-campbell"></p></div>
+      </div>
+      <div class="stab-panel" id="stab-config">
+        <div class="cfg-section">
+          <div class="cfg-head">IMÁGENES DE LA CARTA</div>
+          <div class="cfg-body">
+            <p>Original siempre disponible. Añade versiones y elige cuál mostrar.</p>
+            <label class="file-lbl">&#8593; Añadir imagen<input type="file" class="file-input" id="img-file" accept="image/*"></label>
+            <div class="ver-grid" id="ver-grid"></div>
+          </div>
+        </div>
+        <div class="cfg-section">
+          <div class="cfg-head">NOTA PERSONAL</div>
+          <div class="cfg-body">
+            <textarea class="edit-area" id="ea-notes" rows="4" style="display:block;width:100%" placeholder="Tus notas…"></textarea>
+            <button class="btn btn-dk btn-sm" style="margin-top:6px" onclick="saveNotes()">Guardar</button>
+          </div>
+        </div>
+        <div class="cfg-section">
+          <div class="cfg-head">EXPORTAR</div>
+          <div class="cfg-body">
+            <button class="btn btn-dk btn-sm" onclick="exportData()">&#8595; Exportar JSON</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="sb-empty">
+      <img id="sb-logo" src="" alt="">
+      <p>HAZ CLIC EN UNA CARTA<br>PARA VER SU<br>FUNCIÓN NARRATIVA</p>
+    </div>
+  </div>
+</div>
+
+<div id="floater"><img id="floater-img" src="" alt=""></div>
+
+<div id="add-modal">
+  <div id="add-modal-box">
+    <h2>Nueva Carta</h2>
+    <div class="modal-field"><label>TÍTULO</label><input type="text" id="new-title" placeholder="Ej: Revelación"></div>
+    <div class="modal-field"><label>DESCRIPCIÓN (PROPP)</label><textarea id="new-propp" placeholder="Descripción según Propp…"></textarea></div>
+    <div class="modal-field"><label>RODARI</label><textarea id="new-rodari" placeholder="Interpretación creativa…"></textarea></div>
+    <div class="modal-field"><label>CAMPBELL</label><input type="text" id="new-campbell" placeholder="El Héroe de las Mil Caras…"></div>
+    <div class="modal-field"><label>EJEMPLO</label><input type="text" id="new-example" placeholder="Ejemplo clásico…"></div>
+    <div class="modal-field"><label>IMAGEN (opcional)</label>
+      <label class="file-lbl">&#8593; Subir imagen<input type="file" class="file-input" id="new-img" accept="image/*"></label>
+      <span id="new-img-name" style="font-family:Cinzel,serif;font-size:9px;color:var(--ink-lt);margin-left:10px"></span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-lt" onclick="closeAddModal()">Cancelar</button>
+      <button class="btn btn-dk" onclick="addNewCard()">✦ Añadir al mazo</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CARD_IMAGES = {
+  "aceptacion": "aceptacion.png",
+  "alejamiento": "alejamiento.png",
+  "boda": "boda.png",
+  "carencia": "carencia.png",
+  "castigo": "castigo.png",
+  "combate": "combate.png",
+  "complicidad": "complicidad.png",
+  "daño": "dano.png",
+  "desenmascaramiento": "desenmascaramiento.png",
+  "desobediencia": "desobediencia.png",
+  "disfraz": "disfraz.png",
+  "donacion": "donacion.png",
+  "engaño": "engano.png",
+  "exito": "exito.png",
+  "fracaso": "fracaso.png",
+  "informacion": "informacion.png",
+  "interrogatorio": "interrogatorio.png",
+  "mediacion": "mediacion.png",
+  "partida": "partida.png",
+  "persecucion": "persecucion.png",
+  "prohibicion": "prohibicion.png",
+  "reaccion": "reaccion.png",
+  "reconocimiento": "reconocimiento.png",
+  "regreso": "regreso.png",
+  "socorro": "socorro.png",
+  "solucion": "solucion.png",
+  "sorpresa": "sorpresa.png",
+  "tarea": "tarea.png",
+  "trampa": "trampa.png",
+  "viaje": "viaje.png",
+  "marca": "marca.png",
+};
+
+const CARDS_DATA = [
+  { id: "aceptacion", title: "Aceptación", propp: "Decisión del héroe de actuar (counteraction).", rodari: "Momento en que el personaje asume la misión; la historia pasa de posibilidad a acción.", campbell: "Aceptación del llamado.", example: "Caperucita acepta llevar la cesta a su abuela." },
+  { id: "alejamiento", title: "Alejamiento", propp: "Ausencia o salida del hogar.", rodari: "Ruptura del equilibrio inicial.", campbell: "Separación.", example: "Hansel y Gretel son abandonados en el bosque." },
+  { id: "boda", title: "Boda", propp: "Recompensa final.", rodari: "Restitución social.", campbell: "Retorno con el elixir.", example: "Cenicienta se casa con el príncipe." },
+  { id: "carencia", title: "Carencia", propp: "Falta inicial.", rodari: "Motor del deseo narrativo.", campbell: "Llamado a la aventura.", example: "El padre pobre necesita riqueza en Juan y las habichuelas mágicas." },
+  { id: "castigo", title: "Castigo", propp: "Sanción del villano.", rodari: "Cierre moral del conflicto.", campbell: "Restablecimiento del orden.", example: "La madrastra de Blancanieves es castigada." },
+  { id: "combate", title: "Combate", propp: "Lucha héroe-villano.", rodari: "Enfrentamiento decisivo.", campbell: "Ordalía.", example: "San Jorge mata al dragón." },
+  { id: "complicidad", title: "Complicidad", propp: "La víctima ayuda al villano sin saberlo.", rodari: "Ingenuidad que permite el daño.", campbell: "Tentación.", example: "Caperucita dice al lobo dónde vive la abuela." },
+  { id: "daño", title: "Daño", propp: "Fechoría del villano.", rodari: "Herida narrativa.", campbell: "Crisis inicial.", example: "El lobo devora a la abuela." },
+  { id: "desenmascaramiento", title: "Desenmascaramiento", propp: "Exposición del villano o falso héroe.", rodari: "Caída de la apariencia y revelación de la verdad oculta del antagonista o situación.", campbell: "Revelación final.", example: "En El gato con botas, el ogro se transforma en ratón y queda expuesta su vulnerabilidad esencial; su poder dependía de su forma." },
+  { id: "desobediencia", title: "Desobediencia", propp: "Violación de la prohibición.", rodari: "Transgresión que abre la aventura.", campbell: "Cruce del umbral.", example: "La esposa de Barba Azul abre la puerta prohibida." },
+  { id: "disfraz", title: "Disfraz", propp: "Llegada de incógnito.", rodari: "Identidad oculta.", campbell: "Héroe desconocido.", example: "Odiseo vuelve disfrazado de mendigo." },
+  { id: "donacion", title: "Donación", propp: "Recepción del objeto mágico.", rodari: "Ayuda transformadora.", campbell: "Encuentro con el mentor.", example: "El hada madrina ayuda a Cenicienta." },
+  { id: "engaño", title: "Engaño", propp: "Truco del villano.", rodari: "Manipulación narrativa.", campbell: "Tentación.", example: "El lobo se disfraza de abuela." },
+  { id: "exito", title: "Éxito", propp: "Victoria.", rodari: "Logro del objetivo.", campbell: "Recompensa.", example: "El cazador libera a Caperucita y la abuela." },
+  { id: "fracaso", title: "Fracaso", propp: "Intento fallido o derrota provisional.", rodari: "Error productivo que obliga a reintentar o aprender.", campbell: "Pruebas fallidas.", example: "En Los tres cerditos, las casas de paja y madera fracasan antes de la de ladrillo." },
+  { id: "informacion", title: "Información", propp: "El villano obtiene datos.", rodari: "Conocimiento peligroso o revelador.", campbell: "Revelación parcial.", example: "El lobo averigua dónde vive la abuela." },
+  { id: "interrogatorio", title: "Interrogatorio", propp: "Reconocimiento del villano (investigación).", rodari: "Obtención activa de información mediante preguntas o indagación.", campbell: "Búsqueda.", example: "El lobo pregunta a Caperucita dónde vive la abuela." },
+  { id: "mediacion", title: "Mediación", propp: "Se conoce la carencia.", rodari: "Anuncio de la misión.", campbell: "Llamado.", example: "El rey anuncia la desaparición de la princesa." },
+  { id: "partida", title: "Partida", propp: "Salida del héroe.", rodari: "Inicio del viaje.", campbell: "Cruce del umbral.", example: "El príncipe parte en busca de la princesa." },
+  { id: "persecucion", title: "Persecución", propp: "El héroe es perseguido.", rodari: "Tensión del retorno.", campbell: "Huida.", example: "El gigante persigue a Juan." },
+  { id: "prohibicion", title: "Prohibición", propp: "Regla impuesta.", rodari: "Límite que provoca curiosidad.", campbell: "Advertencia del llamado.", example: "No hables con extraños en Caperucita." },
+  { id: "reaccion", title: "Reacción", propp: "Respuesta del héroe a la prueba del donante.", rodari: "Acción que revela el carácter del héroe y determina si merece ayuda.", campbell: "Prueba del héroe.", example: "Cenicienta ayuda a los animales; luego ellos la ayudan a ella." },
+  { id: "reconocimiento", title: "Reconocimiento", propp: "El héroe es reconocido.", rodari: "Validación social.", campbell: "Reconocimiento.", example: "La zapatilla encaja en Cenicienta." },
+  { id: "regreso", title: "Regreso", propp: "Retorno del héroe.", rodari: "Vuelta transformada.", campbell: "Retorno.", example: "Odiseo regresa a Ítaca." },
+  { id: "socorro", title: "Socorro", propp: "Rescate del héroe.", rodari: "Ayuda salvadora.", campbell: "Ayuda sobrenatural.", example: "Los pájaros ayudan a Cenicienta." },
+  { id: "solucion", title: "Solución", propp: "Resolución de la tarea.", rodari: "Inteligencia final.", campbell: "Superación.", example: "Adivinar el nombre en Rumpelstiltskin." },
+  { id: "sorpresa", title: "Sorpresa", propp: "Elemento inesperado.", rodari: "Giro de maravilla.", campbell: "Revelación súbita.", example: "El ogro puede transformarse en animales." },
+  { id: "tarea", title: "Tarea", propp: "Tarea difícil.", rodari: "Desafío estructural.", campbell: "Pruebas.", example: "Separar granos en Cenicienta." },
+  { id: "trampa", title: "Trampa", propp: "Engaño contra el héroe.", rodari: "Obstáculo deliberado.", campbell: "Obstáculo.", example: "La manzana envenenada de Blancanieves." },
+  { id: "viaje", title: "Viaje", propp: "Desplazamiento entre mundos.", rodari: "Tránsito imaginativo.", campbell: "Camino de pruebas.", example: "Pulgarcito atraviesa el bosque." },
+  { id: "marca", title: "Marca", propp: "El héroe recibe una señal distintiva —herida, cicatriz, sello, anillo, objeto único— que queda ligada a su identidad y servirá más adelante como prueba material de reconocimiento o de lo vivido.", rodari: "Motor lúdico: la marca puede ser una palabra pegadiza, un tic, un apodo, un objeto absurdo o una huella de imaginación que reaparece como leitmotiv. También puede subvertirse: la marca se falsifica, todos la llevan, o cambia de sitio, generando humor, giro o crítica.", campbell: "Equivale a la herida del héroe o al don obtenido tras las Pruebas y el encuentro con el mentor: un cambio visible (cicatriz, estigma, objeto, título) que evidencia la transformación y actúa como trofeo que autentifica el viaje en el Retorno.", example: "Ulises es reconocido por la cicatriz del jabalí. Frodo lleva el dedo amputado. Caperucita guarda la piedra en el vientre del lobo como prueba." },
+];
+
+const LOGO_IMG = "logo promppt.png";
+
+
+const NARRATIVE_GROUPS={
+  inicio:['alejamiento','prohibicion','desobediencia','interrogatorio','informacion','engano','complicidad','dano','carencia'],
+  nudo:['mediacion','aceptacion','partida','viaje','marca','tarea','reaccion','donacion','trampa','fracaso','socorro','combate','exito','solucion','sorpresa'],
+  desenlace:['persecucion','regreso','disfraz','reconocimiento','desenmascaramiento','castigo','boda']
+};
+function normId(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/g,'');}
+const PHASE={};
+Object.entries(NARRATIVE_GROUPS).forEach(([ph,ids])=>ids.forEach(id=>PHASE[id]=ph));
+function getPhase(id){const n=normId(id);return PHASE[n]||PHASE[Object.keys(PHASE).find(k=>normId(k)===n)]||null;}
+
+['deck-logo','hint-logo','sb-logo'].forEach(id=>{const el=document.getElementById(id);if(el)el.src=LOGO_IMG;});
+
+let deck=[],timeline=[],selectedCard=null,verIdx={};
+let rtEnabled=false,rtTimeout=null,rtPending=false,isGen=false,curStory=null;
+let custom={},spreadOpen=false,spreadView='all';
+let newCardImg=null;
+
+function loadC(){try{const d=sessionStorage.getItem('ppc9');if(d)custom=JSON.parse(d);}catch(e){}}
+function saveC(){try{sessionStorage.setItem('ppc9',JSON.stringify(custom));}catch(e){}}
+
+function init(){
+  loadC();deck=[...CARDS_DATA,...(custom.__extra||[])];shuffle(deck);
+  timeline=[];selectedCard=null;spreadOpen=false;
+  renderDeck();renderTL();updateSeq();
+  document.getElementById('sb-content').style.display='none';
+  document.getElementById('sb-empty').style.display='flex';
+  document.getElementById('table-hint').classList.remove('hidden');
+  document.getElementById('card-preview').classList.remove('visible');
+  resetStory();showTab('card');curStory=null;
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+// ── TABS ──
+document.querySelectorAll('.ttab').forEach(t=>t.addEventListener('click',()=>showTab(t.dataset.panel)));
+function showTab(n){
+  document.querySelectorAll('.ttab').forEach(t=>t.classList.toggle('active',t.dataset.panel===n));
+  document.querySelectorAll('.tpanel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+n));
+}
+document.querySelectorAll('.stab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.stab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.stab-panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');document.getElementById('stab-'+t.dataset.stab).classList.add('active');
+}));
+
+// ── DECK ──
+function renderDeck(){
+  document.getElementById('deck-count').textContent=deck.length;
+  document.getElementById('deck-logo').style.opacity=deck.length===0?'0.08':'0.35';
+  document.getElementById('deck-top').style.cursor=deck.length===0?'default':'grab';
+}
+document.getElementById('deck-top').addEventListener('mousedown',e=>{
+  if(deck.length===0)return;e.preventDefault();
+  startDrag({type:'deck',card:deck[deck.length-1]},e.clientX,e.clientY);
+});
+
+function getImg(id){
+  const c=custom[id],vi=verIdx[id]||0;
+  if(vi>0&&c&&c.versions&&c.versions[vi-1])return c.versions[vi-1].src;
+  if(c&&c.origImg)return c.origImg;
+  return CARD_IMAGES[id]||'';
+}
+function getVerTotal(id){return 1+((custom[id]&&custom[id].versions&&custom[id].versions.length)||0);}
+
+// ── DRAG: movement > 6px = drag, else = click ──
+function startDrag(src,sx,sy){
+  let moved=false;
+  const f=document.getElementById('floater'),fi=document.getElementById('floater-img');
+  function onMove(e){
+    const dx=e.clientX-sx,dy=e.clientY-sy;
+    if(!moved&&Math.sqrt(dx*dx+dy*dy)>6){
+      moved=true;fi.src=getImg(src.card.id);f.style.display='block';
+      if(src.type==='tl'){
+        const cards=document.getElementById('tl').querySelectorAll('.tl-slot.occupied .tl-card');
+        if(cards[src.idx])cards[src.idx].classList.add('dragging');
+      }
+    }
+    if(moved){f.style.left=(e.clientX-40)+'px';f.style.top=(e.clientY-58)+'px';hlDrop(e.clientX,e.clientY);}
+  }
+  function onUp(e){
+    document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);
+    f.style.display='none';clrHL();
+    if(moved){
+      const idx=dropIdx(e.clientX,e.clientY);
+      if(idx!==null){
+        if(src.type==='deck')placeDeck(src.card,idx);
+        else if(src.type==='tl')reorder(src.idx,idx);
+        else if(src.type==='spread')placeFromSpread(src.card,idx);
+      } else if(src.type==='tl'){
+        const r=document.getElementById('tl-wrap').getBoundingClientRect();
+        if(e.clientY<r.top-30)returnCard(src.idx);else renderTL();
+      }
+    } else {
+      selectCard(src.card);showTab('card');
+    }
+  }
+  document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
+}
+
+function placeDeck(card,idx){
+  const di=deck.findIndex(c=>c.id===card.id);if(di!==-1)deck.splice(di,1);
+  timeline.splice(idx,0,{...card,iid:Date.now()+Math.random()});
+  renderDeck();renderTL();updateSeq();renderSpread();selectCard(card);updateHint();
+  if(rtEnabled)schedRT();
+}
+function placeFromSpread(card,idx){
+  const di=deck.findIndex(c=>c.id===card.id);if(di!==-1)deck.splice(di,1);
+  const ti=timeline.findIndex(c=>c.id===card.id);if(ti!==-1)timeline.splice(ti,1);
+  timeline.splice(idx,0,{...card,iid:Date.now()+Math.random()});
+  renderDeck();renderTL();updateSeq();renderSpread();selectCard(card);updateHint();
+  if(rtEnabled)schedRT();
+}
+
+// ── TIMELINE ──
+function renderTL(){
+  const tl=document.getElementById('tl');tl.innerHTML='';tl.appendChild(mkI(0));
+  timeline.forEach((card,idx)=>{
+    const slot=document.createElement('div');slot.className='tl-slot occupied';
+    const ce=document.createElement('div');ce.className='tl-card'+(selectedCard&&selectedCard.id===card.id?' selected':'');
+    const num=document.createElement('div');num.className='card-num';num.textContent=idx+1;
+    const img=document.createElement('img');img.src=getImg(card.id);img.alt=card.title;
+    const del=document.createElement('button');del.className='card-del';del.textContent='✕';
+    del.addEventListener('mousedown',e=>e.stopPropagation());
+    del.addEventListener('click',e=>{e.stopPropagation();returnCard(idx);});
+    ce.appendChild(num);ce.appendChild(img);ce.appendChild(del);
+    ce.addEventListener('mousedown',e=>{if(e.target===del)return;e.preventDefault();startDrag({type:'tl',idx,card},e.clientX,e.clientY);});
+    slot.appendChild(ce);tl.appendChild(slot);tl.appendChild(mkI(idx+1));
+  });
+  if(timeline.length<30){const e=document.createElement('div');e.className='tl-slot';e.innerHTML='<span style="font-size:16px;color:var(--rule)">+</span>';tl.appendChild(e);}
+}
+function mkI(pos){const e=document.createElement('div');e.className='drop-ind';e.dataset.pos=pos;return e;}
+function dropIdx(x,y){
+  const r=document.getElementById('tl-wrap').getBoundingClientRect();
+  if(x<r.left||x>r.right||y<r.top||y>r.bottom)return null;
+  const inds=document.getElementById('tl').querySelectorAll('.drop-ind');
+  let best=null,bd=Infinity;
+  inds.forEach(i=>{const cr=i.getBoundingClientRect();const d=Math.abs(x-(cr.left+cr.width/2));if(d<bd){bd=d;best=i;}});
+  return best?parseInt(best.dataset.pos):timeline.length;
+}
+function hlDrop(x,y){clrHL();const i=dropIdx(x,y);if(i===null)return;document.getElementById('tl').querySelectorAll('.drop-ind').forEach(e=>{if(parseInt(e.dataset.pos)===i)e.classList.add('active');});}
+function clrHL(){document.getElementById('tl').querySelectorAll('.drop-ind').forEach(e=>e.classList.remove('active'));}
+function reorder(from,to){
+  if(from===to||from===to-1){renderTL();return;}
+  const c=timeline.splice(from,1)[0];timeline.splice(to>from?to-1:to,0,c);
+  renderTL();updateSeq();renderSpread();if(rtEnabled)schedRT();
+}
+function returnCard(idx){
+  deck.push(timeline.splice(idx,1)[0]);
+  renderDeck();renderTL();updateSeq();updateHint();renderSpread();
+  if(rtEnabled&&timeline.length>0)schedRT();
+}
+function updateHint(){document.getElementById('table-hint').classList.toggle('hidden',timeline.length>0);}
+
+// ── SPREAD ──
+document.getElementById('btn-spread').addEventListener('click',()=>{
+  spreadOpen=!spreadOpen;
+  document.getElementById('btn-spread').textContent=spreadOpen?'⊞ Ocultar':'⊞ Baraja';
+  if(spreadOpen){renderSpread();showTab('spread');}else showTab('card');
+});
+function setSpreadView(phase){
+  spreadView=phase;
+  document.querySelectorAll('.ssb').forEach(b=>b.classList.toggle('active',b.dataset.phase===phase));
+  renderSpread();
+}
+function renderSpread(){
+  const grid=document.getElementById('spread-grid');grid.innerHTML='';
+  const inTL=new Set(timeline.map(c=>c.id));
+  const allCards=[...CARDS_DATA,...(custom.__extra||[])];
+  if(spreadView==='order'){
+    ['inicio','nudo','desenlace'].forEach(ph=>{
+      const cards=allCards.filter(c=>getPhase(c.id)===ph);
+      if(cards.length)appendSpreadSection(grid,ph,cards,inTL);
+    });
+    const others=allCards.filter(c=>!getPhase(c.id));
+    if(others.length)appendSpreadSection(grid,null,others,inTL);
+  } else if(spreadView==='all'){
+    const row=document.createElement('div');row.className='spread-cards-row';row.style.justifyContent='center';
+    allCards.forEach(card=>row.appendChild(makeSpreadCard(card,inTL)));
+    grid.appendChild(row);
+  } else {
+    const cards=allCards.filter(c=>getPhase(c.id)===spreadView);
+    const row=document.createElement('div');row.className='spread-cards-row';row.style.justifyContent='center';
+    cards.forEach(card=>row.appendChild(makeSpreadCard(card,inTL)));
+    grid.appendChild(row);
+  }
+}
+function appendSpreadSection(grid,phase,cards,inTL){
+  const labels={inicio:'🟢 Principio — preparación y ruptura del equilibrio',nudo:'🟠 Nudo — misión, pruebas, confrontación',desenlace:'🔵 Desenlace — retorno, reconocimiento, restitución'};
+  const sec=document.createElement('div');sec.className='spread-section';
+  const stitle=document.createElement('div');stitle.className='spread-section-title';stitle.textContent=labels[phase]||'Otras cartas';
+  sec.appendChild(stitle);
+  const row=document.createElement('div');row.className='spread-cards-row';
+  cards.forEach(card=>row.appendChild(makeSpreadCard(card,inTL)));
+  sec.appendChild(row);grid.appendChild(sec);
+}
+function makeSpreadCard(card,inTL){
+  const div=document.createElement('div');div.className='spread-card'+(inTL.has(card.id)?' in-tl':'');
+  div.title=card.title+(inTL.has(card.id)?' (en línea)':'');
+  const img=document.createElement('img');img.src=getImg(card.id);img.alt=card.title;
+  const lbl=document.createElement('div');lbl.className='spread-card-name';lbl.textContent=card.title;
+  div.appendChild(img);div.appendChild(lbl);
+  div.addEventListener('mousedown',e=>{e.preventDefault();startDrag({type:'spread',card},e.clientX,e.clientY);});
+  return div;
+}
+
+// ── SEQ ──
+function updateSeq(){
+  const el=document.getElementById('seq');
+  if(timeline.length===0){el.innerHTML='<span class="empty">Arrastra cartas a la línea narrativa…</span>';return;}
+  el.innerHTML=timeline.map((c,i)=>(i>0?'<span class="sep">→</span>':'')+
+    '<span style="color:var(--ink)">'+c.title.toUpperCase()+'</span>').join('');
+}
+
+// ── SELECT ──
+function selectCard(card){selectedCard=card;renderTL();showSidebar(card);showPreview(card);}
+function showPreview(card){
+  document.getElementById('card-preview-img').src=getImg(card.id);
+  document.getElementById('card-preview-title').textContent=card.title;
+  const total=getVerTotal(card.id);const nav=document.getElementById('ver-nav');
+  if(total>1){nav.style.display='flex';document.getElementById('ver-lbl').textContent=((verIdx[card.id]||0)+1)+'/'+total;}
+  else nav.style.display='none';
+  document.getElementById('card-preview').classList.add('visible');
+}
+document.getElementById('card-preview-img').addEventListener('click',()=>{if(selectedCard)cycleVer(1);});
+function cycleVer(dir){
+  if(!selectedCard)return;const total=getVerTotal(selectedCard.id);
+  verIdx[selectedCard.id]=((verIdx[selectedCard.id]||0)+dir+total)%total;
+  showPreview(selectedCard);renderTL();
+}
+function showSidebar(card){
+  document.getElementById('sb-empty').style.display='none';
+  document.getElementById('sb-content').style.display='flex';
+  document.getElementById('sb-title').textContent=card.title;
+  document.getElementById('sb-sub').textContent='FUNCIÓN NARRATIVA · RODARI/PROPP';
+  const c=custom[card.id]||{};
+  document.getElementById('txt-propp').textContent=c.propp||card.propp;
+  document.getElementById('txt-rodari').textContent=c.rodari||card.rodari;
+  document.getElementById('txt-campbell').textContent=c.campbell||card.campbell;
+  ['propp','rodari','campbell'].forEach(k=>{
+    document.getElementById('ex-'+k).textContent=c.example||card.example;
+    document.getElementById('ea-'+k).style.display='none';
+    document.getElementById('sv-'+k).style.display='none';
+  });
+  document.getElementById('ea-notes').value=c.notes||'';renderVerGrid(card.id);
+}
+
+// ── EDIT ──
+function toggleEdit(f){
+  const ea=document.getElementById('ea-'+f),sv=document.getElementById('sv-'+f),tx=document.getElementById('txt-'+f);
+  if(ea.style.display==='block'){ea.style.display='none';sv.style.display='none';}
+  else{ea.value=tx.textContent;ea.style.display='block';sv.style.display='inline-block';ea.focus();}
+}
+function saveEdit(f){
+  if(!selectedCard)return;const v=document.getElementById('ea-'+f).value.trim();
+  if(!custom[selectedCard.id])custom[selectedCard.id]={};
+  custom[selectedCard.id][f]=v;saveC();
+  document.getElementById('txt-'+f).textContent=v;
+  document.getElementById('ea-'+f).style.display='none';document.getElementById('sv-'+f).style.display='none';
+}
+function saveNotes(){
+  if(!selectedCard)return;if(!custom[selectedCard.id])custom[selectedCard.id]={};
+  custom[selectedCard.id].notes=document.getElementById('ea-notes').value.trim();saveC();
+}
+
+// ── IMAGE VERSIONS ──
+document.getElementById('img-file').addEventListener('change',function(){
+  if(!selectedCard||!this.files[0])return;const reader=new FileReader();
+  reader.onload=e=>{
+    if(!custom[selectedCard.id])custom[selectedCard.id]={};
+    if(!custom[selectedCard.id].versions)custom[selectedCard.id].versions=[];
+    custom[selectedCard.id].versions.push({src:e.target.result});
+    verIdx[selectedCard.id]=custom[selectedCard.id].versions.length;
+    saveC();renderVerGrid(selectedCard.id);showPreview(selectedCard);renderTL();
+  };reader.readAsDataURL(this.files[0]);this.value='';
+});
+function renderVerGrid(id){
+  const grid=document.getElementById('ver-grid');grid.innerHTML='';
+  const c=custom[id];
+  const ot=document.createElement('div');ot.className='ver-thumb'+((verIdx[id]||0)===0?' cur':'');ot.title='Original';
+  const oi=document.createElement('img');oi.src=c&&c.origImg?c.origImg:(CARD_IMAGES[id]||'');oi.alt='orig';
+  const on=document.createElement('div');on.className='ver-num';on.textContent='orig';
+  ot.appendChild(oi);ot.appendChild(on);
+  ot.addEventListener('click',()=>{verIdx[id]=0;renderVerGrid(id);showPreview(selectedCard);renderTL();});
+  grid.appendChild(ot);
+  if(c&&c.versions&&c.versions.length){
+    c.versions.forEach((v,i)=>{
+      const cur=(verIdx[id]||0)===i+1;const t=document.createElement('div');t.className='ver-thumb'+(cur?' cur':'');
+      const img=document.createElement('img');img.src=v.src;img.alt='v'+(i+1);
+      const num=document.createElement('div');num.className='ver-num';num.textContent=i+1;
+      const del=document.createElement('button');del.className='ver-del';del.textContent='✕';
+      del.addEventListener('click',ev=>{ev.stopPropagation();delVer(id,i);});
+      t.appendChild(img);t.appendChild(num);t.appendChild(del);
+      t.addEventListener('click',()=>{verIdx[id]=i+1;renderVerGrid(id);showPreview(selectedCard);renderTL();});
+      grid.appendChild(t);
+    });
+  }
+}
+function delVer(id,idx){
+  custom[id].versions.splice(idx,1);if((verIdx[id]||0)>custom[id].versions.length)verIdx[id]=0;
+  saveC();renderVerGrid(id);if(selectedCard&&selectedCard.id===id){showPreview(selectedCard);renderTL();}
+}
+function exportData(){
+  const out={};CARDS_DATA.forEach(c=>{const cu=custom[c.id]||{};out[c.id]={title:c.title,propp:cu.propp||c.propp,rodari:cu.rodari||c.rodari,campbell:cu.campbell||c.campbell,example:cu.example||c.example,notes:cu.notes||'',customVersions:(cu.versions||[]).length};});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:'application/json'}));a.download='mesa_propp_data.json';a.click();
+}
+
+// ── ADD CARD ──
+document.getElementById('add-card-btn').addEventListener('click',()=>document.getElementById('add-modal').classList.add('open'));
+document.getElementById('add-modal').addEventListener('click',e=>{if(e.target===document.getElementById('add-modal'))closeAddModal();});
+document.getElementById('new-img').addEventListener('change',function(){
+  if(!this.files[0])return;const reader=new FileReader();
+  reader.onload=e=>{newCardImg=e.target.result;};reader.readAsDataURL(this.files[0]);
+  document.getElementById('new-img-name').textContent=this.files[0].name;
+});
+function closeAddModal(){
+  document.getElementById('add-modal').classList.remove('open');
+  ['new-title','new-propp','new-rodari','new-campbell','new-example'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('new-img-name').textContent='';newCardImg=null;
+}
+function addNewCard(){
+  const title=document.getElementById('new-title').value.trim();if(!title){alert('El título es obligatorio');return;}
+  const id='custom_'+Date.now();
+  const newCard={id,title,propp:document.getElementById('new-propp').value.trim()||'Función personalizada.',rodari:document.getElementById('new-rodari').value.trim()||'',campbell:document.getElementById('new-campbell').value.trim()||'',example:document.getElementById('new-example').value.trim()||''};
+  if(newCardImg){if(!custom[id])custom[id]={};custom[id].origImg=newCardImg;}
+  if(!custom.__extra)custom.__extra=[];custom.__extra.push(newCard);deck.push(newCard);
+  saveC();renderDeck();renderSpread();closeAddModal();selectCard(newCard);showTab('card');
+}
+
+// ── BUTTONS ──
+document.getElementById('btn-shuffle').addEventListener('click',()=>{
+  shuffle(deck);const s=document.getElementById('deck-stack');
+  s.classList.remove('shuffling');void s.offsetWidth;s.classList.add('shuffling');
+  setTimeout(()=>s.classList.remove('shuffling'),620);renderDeck();
+});
+document.getElementById('btn-reset').addEventListener('click',()=>{
+  deck=[...CARDS_DATA,...(custom.__extra||[])];shuffle(deck);timeline=[];selectedCard=null;spreadOpen=false;
+  renderDeck();renderTL();updateSeq();updateHint();
+  document.getElementById('sb-content').style.display='none';document.getElementById('sb-empty').style.display='flex';
+  document.getElementById('card-preview').classList.remove('visible');
+  resetStory();showTab('card');curStory=null;document.getElementById('btn-spread').textContent='⊞ Baraja';
+});
+document.getElementById('btn-compose').addEventListener('click',()=>genStory(false));
+document.getElementById('btn-clear').addEventListener('click',()=>{resetStory();curStory=null;});
+document.getElementById('rt-sw').addEventListener('change',function(){
+  rtEnabled=this.checked;document.getElementById('rt-status').classList.toggle('on',rtEnabled);
+  if(rtEnabled&&timeline.length>0)schedRT();
+});
+
+// ── STORY ──
+function resetStory(){
+  document.getElementById('story-placeholder').style.display='block';
+  document.getElementById('story-generating').style.display='none';
+  document.querySelectorAll('.story-para').forEach(e=>e.remove());
+  document.getElementById('story-moralia').style.display='none';
+  document.getElementById('story-funcs').textContent='—';document.getElementById('story-badge').textContent='—';
+}
+function schedRT(){
+  clearTimeout(rtTimeout);if(isGen){rtPending=true;return;}
+  rtTimeout=setTimeout(()=>{if(!isGen)genStory(true);},1200);
+}
+async function genStory(isRT){
+  if(timeline.length===0)return;
+  const key=(document.getElementById('api-key').value||'').replace(/[^\x21-\x7E]/g,'').trim();
+  const model=document.getElementById('model-sel').value;
+  const mode=document.getElementById('mode-sel').value;const isF=mode==='folklore';
+  if(!key){showTab('story');document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Introduce tu API key en el Scriptorium.</span>';return;}
+  const funcs=timeline.map((c,i)=>`${i+1}. ${c.title} — ${c.propp}`).join('\n');
+  const modeLabel=isF?'FOLKLORE · CUENTO':'CONTEMPORÁNEO';
+  const styleBlock=isF?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Fórmulas orales. Personajes arquetípicos. Mundo mágico. Cierra con moraleja explícita.':'ESTILO: Relato contemporáneo. Personajes psicológicos. Ambientación concreta. SIN moraleja. Cierre emocionalmente resolutivo.';
+  const jsonSchema='{"paragraphs":[{"func":"Nombre función","text":"Texto párrafo"}],'+(isF?'"moralia":"texto"':'"moralia":""')+'}';
+  let prompt;
+  if(isRT&&curStory){prompt='Reescribe esta historia con el NUEVO ORDEN de funciones. Mismos personajes y mundo, trama adaptada.\n\nHISTORIA:\n'+curStory.raw+'\n\nNUEVO ORDEN:\n'+funcs+'\n\n'+styleBlock+'\n\nSOLO JSON:\n'+jsonSchema;}
+  else{prompt='Compón un relato con estas funciones de Propp/Rodari. UN PÁRRAFO POR FUNCIÓN en orden exacto.\n\nFUNCIONES:\n'+funcs+'\n\n- Inicio, desarrollo, cierre completo\n- Personajes con nombres, coherentes\n- NO menciones las funciones\n- 300-420 palabras\n\n'+styleBlock+'\n\nSOLO JSON:\n'+jsonSchema;}
+  isGen=true;showTab('story');resetStory();
+  document.getElementById('story-placeholder').style.display='none';
+  document.getElementById('story-generating').style.display='block';
+  document.getElementById('story-funcs').textContent=timeline.map(c=>c.title).join(' → ');
+  document.getElementById('story-badge').textContent=modeLabel;
+  try{
+    let raw='';
+    if(model==='claude'){
+      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,messages:[{role:'user',content:prompt}]})});
+      const d=await r.json();if(d.error)throw new Error(d.error.message);raw=d.content[0].text;
+    }else{
+      const r=await fetch('https://api.x.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'grok-3-latest',messages:[{role:'user',content:prompt}],max_tokens:1200})});
+      const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));raw=d.choices[0].message.content;
+    }
+    let parsed;try{const clean=raw.replace(/^```(?:json)?\s*/m,'').replace(/```\s*$/m,'').trim();parsed=JSON.parse(clean);}
+    catch(e){parsed={paragraphs:[{func:'',text:raw}],moralia:''};}
+    document.getElementById('story-generating').style.display='none';
+    const body=document.getElementById('story-body');
+    curStory={paragraphs:parsed.paragraphs,moralia:parsed.moralia||'',raw:parsed.paragraphs.map(p=>'['+p.func+']\n'+p.text).join('\n\n')};
+    parsed.paragraphs.forEach(p=>{
+      const div=document.createElement('div');div.className='story-para';
+      if(p.func){const tag=document.createElement('div');tag.className='story-func-tag';tag.textContent=p.func.toUpperCase();div.appendChild(tag);}
+      const txt=document.createElement('div');txt.className='story-para-text';txt.textContent=p.text;div.appendChild(txt);
+      body.appendChild(div);
+    });
+    if(isF&&parsed.moralia){document.getElementById('moralia-text').textContent=parsed.moralia;document.getElementById('story-moralia').style.display='block';}
+  }catch(err){
+    document.getElementById('story-generating').style.display='none';document.getElementById('story-placeholder').style.display='block';
+    document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Error: '+err.message+'</span>';
+  }
+  isGen=false;if(rtPending&&rtEnabled){rtPending=false;schedRT();}
+}
+
+init();
+</script>
+</body>
+</html>
