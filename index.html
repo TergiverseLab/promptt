@@ -1060,8 +1060,18 @@ async function genStory(isRT){
   document.getElementById('story-funcs').textContent=timeline.map(c=>c.title).join(' → ');
   document.getElementById('story-badge').textContent=modeLabel;
   try{
-    const raw=await callAI(key,model,prompt,1400);
-    let parsed;try{parsed=parseJSON(raw);}catch(e){parsed={paragraphs:[{func:'',text:raw}],moralia:''};}
+    const raw=await callAI(key,model,prompt,1400,true);
+    let parsed;
+    try{
+      parsed=parseJSON(raw);
+      if(!parsed.paragraphs||!Array.isArray(parsed.paragraphs)) throw new Error('missing paragraphs');
+    }catch(e){
+      document.getElementById('story-generating').style.display='none';
+      document.getElementById('story-placeholder').style.display='block';
+      document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Error procesando respuesta. Inténtalo de nuevo o cambia de modelo.</span>';
+      isGen=false;if(rtPending&&rtEnabled){rtPending=false;schedRT();}
+      return;
+    }
     document.getElementById('story-generating').style.display='none';
     const body=document.getElementById('story-body');
     curStory={paragraphs:parsed.paragraphs,moralia:parsed.moralia||'',raw:parsed.paragraphs.map(p=>'['+p.func+']\n'+p.text).join('\n\n')};
@@ -1085,30 +1095,41 @@ async function genStoryMonomito(){
   const model=document.getElementById('model-sel').value;
   const mode=document.getElementById('mode-sel').value;const isF=mode==='folklore';
   if(!key){showTab('story');document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Introduce tu API key en el Scriptorium.</span>';return;}
-  // Build ordered stage list from LIVE mmOrder
+  // Build ordered stage list — use PHASE labels to prevent model reordering based on prior Campbell knowledge
   const orderedStages=mmOrder.map((id,i)=>{
     const s=MONOMITO_STAGES.find(x=>x.id===id);
     const ex=(mmData[id]&&mmData[id].text)||'';
-    return `${i+1}. ${s.name}${ex?' (nota: '+ex+')':''}`;
+    // Label as FASE N with name as descriptor — model must follow FASE order, not name recognition
+    return `FASE_${String(i+1).padStart(2,'0')} [${s.name}]${ex?' — '+ex:''}`;
   }).join('\n');
+
+  // Build the JSON template with explicit phase keys to lock output order
+  const phaseKeys=mmOrder.map((id,i)=>({
+    func: `FASE_${String(i+1).padStart(2,'0')}`,
+    name: MONOMITO_STAGES.find(s=>s.id===id).name
+  }));
+  const jsonTemplate='{"paragraphs":[\n'+phaseKeys.map(p=>`  {"func":"${p.name}","text":"ESCRIBE_AQUI_EL_PARRAFO_DE_${p.func}"}`).join(',\n')+'\n]'+(isF?',"moralia":"ESCRIBE_AQUI_LA_MORALEJA"':'')+'}';
+
   const styleBlock=isF
     ?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Cierra con moraleja explícita.'
     :'ESTILO: Relato contemporáneo. Personajes psicológicos. SIN moraleja. Cierre emocionalmente resolutivo.';
-  const jsonSchema='{"paragraphs":[{"func":"nombre_etapa","text":"texto_parrafo"}],'+(isF?'"moralia":"texto"':'"moralia":""')+'}';
-  const prompt=`Eres un narrador experto. Escribe un relato EXACTAMENTE en el orden de etapas indicado. NO reordenes las etapas. NO saltes ninguna. Escribe UN párrafo por etapa.
 
-ORDEN EXACTO DE ETAPAS (respétalo escrupulosamente):
+  const prompt=`Eres un generador de texto estructurado. Tu tarea es rellenar una plantilla JSON con texto narrativo.
+
+REGLA ABSOLUTA: Rellena los campos en el orden exacto en que aparecen. NO cambies el orden de los objetos en el array. Cada objeto "func" corresponde a una fase de la historia y ya está ordenado. Solo reemplaza los valores "ESCRIBE_AQUI_..." con el texto narrativo correspondiente.
+
+FASES EN ORDEN (de primera a última, sin alteración):
 ${orderedStages}
 
-INSTRUCCIONES:
-- Un párrafo por etapa, en el orden exacto de la lista anterior
-- Personajes con nombres propios, coherentes entre sí
-- NO menciones los nombres de las etapas dentro del texto narrativo
-- 30-50 palabras por párrafo
+INSTRUCCIONES DE ESCRITURA:
+- Para cada FASE_NN escribe UN párrafo de 35-50 palabras
+- Los personajes deben tener nombres propios y ser coherentes entre sí
+- NO menciones el nombre de la fase en el texto
+- El relato debe tener continuidad narrativa entre fases consecutivas
 ${styleBlock}
 
-RESPONDE ÚNICAMENTE CON ESTE JSON, SIN TEXTO ADICIONAL, SIN BLOQUES DE CÓDIGO MARKDOWN:
-${jsonSchema}`;
+PLANTILLA A RELLENAR (devuelve exactamente esta estructura con los textos rellenos):
+${jsonTemplate}`;
 
   isGen=true;showTab('story');resetStory();
   document.getElementById('story-placeholder').style.display='none';
@@ -1116,12 +1137,19 @@ ${jsonSchema}`;
   document.getElementById('story-funcs').textContent=mmOrder.map(id=>MONOMITO_STAGES.find(s=>s.id===id).name).join(' → ');
   document.getElementById('story-badge').textContent='☯ MONOMITO';
   try{
-    const raw=await callAI(key,model,prompt,2000);
+    const raw=await callAI(key,model,prompt,2000,true);
     let parsed;
-    try{parsed=parseJSON(raw);}
-    catch(e){
-      // Last resort: show cleaned text if JSON parse fails completely
-      parsed={paragraphs:[{func:'',text:raw.replace(/```json|```/g,'').trim()}],moralia:''};
+    try{
+      parsed=parseJSON(raw);
+      if(!parsed.paragraphs||!Array.isArray(parsed.paragraphs)) throw new Error('missing paragraphs');
+      // Clean up placeholder text from template if model left it
+      parsed.paragraphs=parsed.paragraphs.map(p=>({func:p.func,text:(p.text||'').replace(/ESCRIBE_AQUI_.*?(\s|$)/g,'').trim()||p.text}));
+    }catch(e){
+      document.getElementById('story-generating').style.display='none';
+      document.getElementById('story-placeholder').style.display='block';
+      document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Error procesando respuesta. Inténtalo de nuevo o cambia de modelo.</span>';
+      isGen=false;if(rtPending&&rtEnabled){rtPending=false;schedRT();}
+      return;
     }
     document.getElementById('story-generating').style.display='none';
     const body=document.getElementById('story-body');
@@ -1587,19 +1615,28 @@ function downloadMMFragments(){
 }
 
 // ── Shared AI caller ──
-async function callAI(key,model,prompt,maxTokens){
+async function callAI(key,model,prompt,maxTokens,forceJson){
   maxTokens=maxTokens||2000;
   if(model==='claude'){
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
+    // Claude: use system prompt to enforce JSON
+    const body={model:'claude-sonnet-4-6',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]};
+    if(forceJson) body.system='Responde ÚNICAMENTE con JSON válido. Sin texto adicional. Sin bloques de código markdown. Sin explicaciones.';
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify(body)});
     const d=await r.json();if(d.error)throw new Error(d.error.message);return d.content[0].text;
   }else if(model==='groq'){
-    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:maxTokens})});
+    const body={model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:maxTokens};
+    if(forceJson) body.response_format={type:'json_object'};
+    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(body)});
     const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));return d.choices[0].message.content;
   }else if(model==='mistral'){
-    const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'mistral-large-latest',messages:[{role:'user',content:prompt}],max_tokens:maxTokens})});
+    const body={model:'mistral-large-latest',messages:[{role:'user',content:prompt}],max_tokens:maxTokens};
+    if(forceJson) body.response_format={type:'json_object'};
+    const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(body)});
     const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));return d.choices[0].message.content;
   }else if(model==='gemini'){
-    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens,thinkingConfig:{thinkingBudget:0}}})});
+    const cfg={maxOutputTokens:maxTokens,thinkingConfig:{thinkingBudget:0}};
+    if(forceJson) cfg.responseMimeType='application/json';
+    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:cfg})});
     const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
     return (d.candidates[0].content.parts||[]).filter(p=>p.text&&!p.thought).map(p=>p.text).join('');
   }
@@ -1607,16 +1644,35 @@ async function callAI(key,model,prompt,maxTokens){
 }
 
 function parseJSON(raw){
-  // Fix curly/smart quotes
-  let c=raw.replace(/[\u201C\u201D\u201E\u201F]/g,'"').replace(/[\u2018\u2019\u201A\u201B]/g,"'");
-  // Strip ALL markdown code fence variants: ```json, ```JSON, ```, ` etc.
-  c=c.replace(/```[a-zA-Z]*\n?/g,'').replace(/```/g,'').replace(/`/g,'');
-  // Strip leading/trailing whitespace
-  c=c.trim();
-  // Extract just the JSON object (from first { to last })
-  const s=c.indexOf('{'),e=c.lastIndexOf('}');
-  if(s>=0 && e>s) c=c.slice(s,e+1);
-  return JSON.parse(c);
+  if(!raw||typeof raw!=='string') throw new Error('empty response');
+
+  // Strategy 1: direct parse (model returned clean JSON)
+  try{ return JSON.parse(raw.trim()); }catch(e){}
+
+  // Strategy 2: normalize quotes + strip markdown fences + extract {…}
+  let c=raw
+    .replace(/[\u201C\u201D\u201E\u201F]/g,'"')
+    .replace(/[\u2018\u2019\u201A\u201B]/g,"'")
+    .replace(/```[\w]*\s*/g,'')   // ```json or ``` opener
+    .replace(/```\s*/g,'')         // ``` closer
+    .replace(/`/g,'')              // stray backticks
+    .trim();
+  try{ return JSON.parse(c); }catch(e){}
+
+  // Strategy 3: extract outermost { … }
+  const s=c.indexOf('{'), e=c.lastIndexOf('}');
+  if(s>=0 && e>s){
+    try{ return JSON.parse(c.slice(s,e+1)); }catch(e){}
+  }
+
+  // Strategy 4: fix unescaped newlines inside string values then extract
+  const fixed=c.replace(/:\s*"([\s\S]*?)(?<!\\)"/g,(_,v)=>':"'+v.replace(/\n/g,' ').replace(/\r/g,'')+'"');
+  const s2=fixed.indexOf('{'), e2=fixed.lastIndexOf('}');
+  if(s2>=0 && e2>s2){
+    try{ return JSON.parse(fixed.slice(s2,e2+1)); }catch(e){}
+  }
+
+  throw new Error('JSON parse failed after all strategies');
 }
 
 async function genMonomito(onlyEmpty){
@@ -1634,7 +1690,7 @@ async function genMonomito(onlyEmpty){
   const prompt=`Genera contenido narrativo para estas etapas del Monomito de Campbell.${proppCtx}\n\nETAPAS:\n${stagesInfo}\n\nPara cada etapa: un párrafo breve (40-60 palabras) que describa lo que ocurre.\n\nSOLO JSON. SIN TEXTO ADICIONAL:\n{"stages":[{"id":1,"text":"texto"},...]}`;
   const btn=document.querySelector('#monomito-actions .btn-dk');btn.textContent='✦ Generando…';btn.disabled=true;
   try{
-    const raw=await callAI(key,model,prompt,2000);
+    const raw=await callAI(key,model,prompt,2000,true);
     const parsed=parseJSON(raw);
     parsed.stages.forEach(s=>{if(!mmData[s.id])mmData[s.id]={};mmData[s.id].text=s.text;});
     saveMM();buildWheel();if(mmSelected)selectMMStage(mmSelected);
