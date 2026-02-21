@@ -129,6 +129,11 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
 
 /* Story panel — scrollable */
 #panel-story{background:var(--paper)}
+#story-source-bar{display:flex;gap:0;border-bottom:2px solid var(--ink);flex-shrink:0;margin-bottom:12px}
+.story-src-btn{flex:1;padding:8px 12px;font-family:"Cinzel",serif;font-size:10px;font-weight:600;letter-spacing:1px;cursor:pointer;border:none;border-right:1px solid var(--ink);background:var(--paper-dk);color:var(--rule);transition:all 0.15s}
+.story-src-btn:last-child{border-right:none}
+.story-src-btn.active{background:var(--black);color:var(--white)}
+.story-src-btn:hover:not(.active){background:var(--paper);color:var(--ink)}
 #story-scroll{flex:1;overflow-y:auto;padding:22px 32px 24px}
 #story-scroll::-webkit-scrollbar{width:4px}
 #story-scroll::-webkit-scrollbar-thumb{background:var(--ink)}
@@ -150,13 +155,24 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
 #moralia-text{font-family:"EB Garamond",serif;font-style:italic;font-size:15px;color:var(--black);line-height:1.65}
 
 /* ── BOTTOM SECTION ── */
-#bottom{height:var(--bottom-h);flex-shrink:0;display:flex;flex-direction:column;border-top:3px double var(--ink);background:var(--white)}
-#tl-wrap{flex:1;background:var(--paper-dk);border-bottom:2px solid var(--ink);display:flex;align-items:center;padding:0 12px;position:relative;min-height:0;overflow:hidden}
-#tl-label{position:absolute;top:6px;left:14px;font-family:"Cinzel",serif;font-size:9px;color:var(--ink-lt);letter-spacing:2.5px;z-index:2}
+#bottom{flex-shrink:0;display:flex;flex-direction:column;border-top:3px double var(--ink);background:var(--white)}
+#tl-wrap{background:var(--paper-dk);border-bottom:2px solid var(--ink);display:flex;flex-direction:column;padding:4px 12px 8px;position:relative;min-height:0;flex-shrink:0}
+#tl-label{font-family:"Cinzel",serif;font-size:9px;color:var(--ink-lt);letter-spacing:2.5px;z-index:2;padding:4px 0 2px}
 #tl-wrap::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle 4px at 10px 10px,var(--ink) 50%,transparent 51%),radial-gradient(circle 4px at calc(100% - 10px) 10px,var(--ink) 50%,transparent 51%),radial-gradient(circle 4px at 10px calc(100% - 10px),var(--ink) 50%,transparent 51%),radial-gradient(circle 4px at calc(100% - 10px) calc(100% - 10px),var(--ink) 50%,transparent 51%)}
-#tl{display:flex;align-items:center;gap:7px;overflow-x:auto;padding:22px 4px 8px;flex:1;scrollbar-width:thin;scrollbar-color:var(--ink-lt) transparent;position:relative;z-index:2}
+#tl{display:flex;align-items:center;gap:7px;overflow-x:auto;padding:0 4px 4px;flex:1;scrollbar-width:thin;scrollbar-color:var(--ink-lt) transparent;position:relative;z-index:2}
 #tl::-webkit-scrollbar{height:4px}
 #tl::-webkit-scrollbar-thumb{background:var(--ink-lt)}
+/* Monomito timeline — two balanced rows */
+#tl-mm{display:none;flex-direction:column;gap:3px;overflow-x:auto;padding:4px 4px 6px;flex:1;scrollbar-width:thin;scrollbar-color:var(--ink-lt) transparent;z-index:2}
+#tl-mm::-webkit-scrollbar{height:4px}
+#tl-mm::-webkit-scrollbar-thumb{background:var(--ink-lt)}
+.tl-mm-row{display:flex;align-items:center;gap:0;flex-wrap:nowrap;flex-shrink:0}
+.tl-mm-item{font-family:"Cinzel",serif;font-size:9px;letter-spacing:0.3px;cursor:grab;white-space:nowrap;padding:3px 6px;border:1px solid transparent;transition:all 0.15s;flex-shrink:0;user-select:none;background:var(--paper)}
+.tl-mm-item:hover{border-color:var(--rule)}
+.tl-mm-item.active{color:var(--black);font-weight:700;border-color:var(--ink);background:var(--paper-dk)}
+.tl-mm-item.done{color:var(--ink)}
+.tl-mm-item:not(.done):not(.active){color:var(--ink-lt)}
+.tl-mm-arrow{font-family:"Cinzel",serif;font-size:11px;color:var(--rule);flex-shrink:0;user-select:none;padding:0 1px}
 .tl-slot{flex-shrink:0;width:80px;height:120px;border:1px dashed var(--rule);display:flex;align-items:center;justify-content:center}
 .tl-slot.occupied{border:none}
 .tl-card{width:78px;height:118px;background:var(--white);border:2px solid var(--ink);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s,border-color 0.15s;position:relative;user-select:none;overflow:hidden}
@@ -191,7 +207,8 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
 #rt-status.on{display:block;color:var(--black);font-weight:700}
 
 /* ── SIDEBAR ── */
-#sidebar{width:var(--sidebar-w);background:var(--white);border-left:3px double var(--ink);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;position:relative}
+#sidebar,#sb-monomito{width:var(--sidebar-w);background:var(--white);border-left:3px double var(--ink);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+#sb-monomito{display:none}
 #sb-head{padding:14px 16px 12px;border-bottom:2px solid var(--ink);flex-shrink:0;position:relative}
 #sb-head::after{content:"─── ✦ ───";position:absolute;bottom:-9px;left:0;right:0;text-align:center;font-size:10px;color:var(--rule);letter-spacing:3px;font-family:"Cinzel",serif;background:var(--white);width:fit-content;margin:0 auto;padding:0 8px}
 #sb-title{font-family:"UnifrakturMaguntia",serif;font-size:24px;color:var(--black);letter-spacing:0.5px}
@@ -231,7 +248,38 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
 #sb-empty img{width:56px;opacity:0.1;filter:grayscale(1)}
 #sb-empty p{font-family:"Cinzel",serif;font-size:10px;color:var(--rule);letter-spacing:1.5px;text-align:center;line-height:2.4}
 
-/* ── FLOATER ── */
+/* ── MONOMITO ── */
+#panel-monomito{background:var(--paper);align-items:center;justify-content:center;flex-direction:column}
+#monomito-wheel-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:6px;width:100%;min-height:0;overflow:hidden}
+#monomito-svg{width:min(680px,calc(100vh - 200px));height:min(680px,calc(100vh - 200px));overflow:visible;display:block}
+#monomito-actions{flex-shrink:0;padding:10px 16px;border-top:2px solid var(--ink);background:var(--white);display:flex;gap:8px;flex-wrap:wrap;width:100%;box-sizing:border-box}
+#sb-mm-body::-webkit-scrollbar{width:4px}
+#sb-mm-body::-webkit-scrollbar-thumb{background:var(--ink)}
+#sb-mm-head{padding:14px 16px 12px;border-bottom:2px solid var(--ink);flex-shrink:0;background:var(--white)}
+#sb-mm-body{flex:1;overflow-y:auto;padding:14px 16px;background:var(--white)}
+#monomito-empty{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:40px 20px;font-family:"Cinzel",serif;font-size:11px;color:var(--ink-lt);letter-spacing:1.5px;text-align:center;line-height:2.4;border:1px dashed var(--rule);margin:16px}
+#monomito-detail{display:none}
+#mm-stage-num-label{font-family:"Cinzel",serif;font-size:9px;color:var(--rule);letter-spacing:3px;margin-bottom:4px}
+#mm-stage-name-label{font-family:"UnifrakturMaguntia",serif;font-size:22px;color:var(--black)}
+.mm-segment{cursor:grab;transition:transform 0.18s cubic-bezier(.34,1.56,.64,1)}
+.mm-segment:active{cursor:grabbing}
+.mm-seg-path{fill:var(--paper);stroke:var(--ink);stroke-width:1.3;transition:fill 0.12s}
+.mm-segment:hover:not(.active):not(.mm-dragging) .mm-seg-path{fill:var(--paper-dk)}
+.mm-segment.active .mm-seg-path{fill:var(--ink) !important}
+.mm-segment.done:not(.active) .mm-seg-path{fill:#d8d4cc}
+.mm-segment.mm-dragging .mm-seg-path{fill:var(--paper-dk) !important;stroke-width:2.5}
+.mm-segment{cursor:grab;transition:transform 0.12s}
+.mm-done-dot{fill:var(--ink);pointer-events:none}
+.mm-segment.active .mm-done-dot{fill:var(--white) !important}
+.mm-seg-label{font-family:"Cinzel",serif;font-size:8px;fill:var(--ink);pointer-events:none}
+.mm-seg-num{font-family:"Cinzel",serif;font-size:11px;font-weight:700;fill:var(--rule);pointer-events:none}
+.mm-segment.active .mm-seg-label{fill:var(--white) !important}
+.mm-segment.active .mm-seg-num{fill:var(--white) !important}
+.mm-segment:active{cursor:grabbing}
+#mm-propp-cards .spread-card{width:52px;height:74px;cursor:pointer}
+#mm-propp-cards .spread-card img{width:100%;height:52px;object-fit:cover}
+#mm-propp-cards .spread-card-name{font-size:5px;padding:2px 3px;text-align:center}
+
 #floater{position:fixed;pointer-events:none;z-index:1000;display:none;border:2px solid var(--black);overflow:hidden;transform:rotate(2.5deg);box-shadow:5px 5px 0 rgba(0,0,0,0.4)}
 #floater img{width:80px;height:116px;display:block}
 
@@ -278,6 +326,7 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
       <div id="ttabs">
         <div class="ttab active" data-panel="card">✦ CARTA</div>
         <div class="ttab" data-panel="spread">⊞ BARAJA</div>
+        <div class="ttab" data-panel="monomito">☯ MONOMITO</div>
         <div class="ttab" data-panel="story">📜 RELATO</div>
       </div>
 
@@ -318,15 +367,30 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
         </div>
       </div>
 
+      <!-- MONOMITO panel — solo la rueda -->
+      <div class="tpanel" id="panel-monomito">
+        <div id="monomito-wheel-wrap">
+          <svg id="monomito-svg" viewBox="-250 -250 500 500" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div id="monomito-actions">
+          <button class="btn btn-lt btn-sm" onclick="downloadMMFragments()">⎘ Exportar fragmentos</button>
+          <button class="btn btn-lt btn-sm" onclick="clearMonomito()">✕ Limpiar rueda</button>
+        </div>
+      </div>
+
       <!-- RELATO panel -->
       <div class="tpanel" id="panel-story">
         <div id="story-scroll">
           <div id="story-header">
+            <div id="story-source-bar">
+              <button class="story-src-btn active" id="src-propp-btn" onclick="setStorySrc('propp')">⊞ Funciones Propp</button>
+              <button class="story-src-btn" id="src-mm-btn" onclick="setStorySrc('monomito')">☯ Monomito Campbell</button>
+            </div>
             <div id="story-funcs">—</div>
             <div id="story-badge">—</div>
           </div>
           <div id="story-body">
-            <div id="story-placeholder">Coloca funciones en la secuencia narrativa y pulsa <em>Componer</em>.<br><small style="font-size:12px;opacity:0.5;display:block;margin-top:10px">Gramática creativa según Rodari sobre Propp.</small></div>
+            <div id="story-placeholder" data-propp="Coloca funciones en la secuencia narrativa y pulsa &lt;em&gt;Componer&lt;/em&gt;.<br><small style='font-size:12px;opacity:0.5;display:block;margin-top:10px'>Gramática creativa según Rodari sobre Propp.</small>" data-monomito="Selecciona segmentos en la rueda del Monomito y pulsa &lt;em&gt;Componer&lt;/em&gt;.<br><small style='font-size:12px;opacity:0.5;display:block;margin-top:10px'>El Viaje del Héroe según Campbell.</small>">Coloca funciones en la secuencia narrativa y pulsa <em>Componer</em>.<br><small style="font-size:12px;opacity:0.5;display:block;margin-top:10px">Gramática creativa según Rodari sobre Propp.</small></div>
             <div id="story-generating">✦ Componiendo el relato…</div>
           </div>
           <div id="story-moralia">
@@ -341,6 +405,7 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
       <div id="tl-wrap">
         <span id="tl-label">LÍNEA NARRATIVA</span>
         <div id="tl"></div>
+        <div id="tl-mm" style="display:none"></div>
       </div>
       <div id="scriptorium">
         <span id="scr-label">Scriptorium</span>
@@ -397,6 +462,18 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
       </div>
       <div class="stab-panel" id="stab-config">
         <div class="cfg-section">
+          <div class="cfg-head">FASE NARRATIVA</div>
+          <div class="cfg-body">
+            <p>Cambia el grupo al que pertenece esta carta en la Baraja.</p>
+            <select id="phase-sel" style="width:100%;background:var(--paper);border:2px solid var(--ink);color:var(--black);font-family:'Cinzel',serif;font-size:10px;padding:6px 8px;height:36px;letter-spacing:0.5px">
+              <option value="inicio">🟢 Principio</option>
+              <option value="nudo">🟠 Nudo</option>
+              <option value="desenlace">🔵 Desenlace</option>
+            </select>
+            <button class="btn btn-dk btn-sm" style="margin-top:6px" onclick="savePhase()">Guardar fase</button>
+          </div>
+        </div>
+        <div class="cfg-section">
           <div class="cfg-head">IMÁGENES DE LA CARTA</div>
           <div class="cfg-body">
             <p>Original siempre disponible. Añade versiones y elige cuál mostrar.</p>
@@ -423,8 +500,38 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
       <img id="sb-logo" src="" alt="">
       <p>HAZ CLIC EN UNA CARTA<br>PARA VER SU<br>FUNCIÓN NARRATIVA</p>
     </div>
-  </div>
-</div>
+  </div><!-- end sidebar -->
+
+  <!-- MONOMITO SIDEBAR — sibling of #sidebar inside #main -->
+  <div id="sb-monomito">
+    <div id="sb-mm-head">
+      <div id="mm-stage-num-label"></div>
+      <div id="mm-stage-name-label"></div>
+    </div>
+    <div id="sb-mm-body">
+      <div id="monomito-empty"><p>HAZ CLIC EN UN<br>SEGMENTO DE LA RUEDA</p></div>
+      <div id="monomito-detail">
+        <p id="mm-stage-desc" style="font-family:'EB Garamond',serif;font-size:14px;line-height:1.7;color:var(--ink);margin-bottom:10px"></p>
+        <div id="mm-stage-example" style="font-family:'EB Garamond',serif;font-size:13px;font-style:italic;color:var(--ink-lt);padding:6px 10px;border-left:3px solid var(--rule);margin-bottom:12px"></div>
+        <div class="cfg-section">
+          <div class="cfg-head">TU NARRATIVA <span class="edit-btn" onclick="toggleMMEdit()">✎ editar</span></div>
+          <div class="cfg-body">
+            <p id="mm-user-text" style="font-family:'EB Garamond',serif;font-size:14px;color:var(--ink);line-height:1.6;min-height:30px"></p>
+            <textarea id="mm-edit-area" class="edit-area" rows="4" placeholder="Escribe tu versión de esta etapa…"></textarea>
+            <button class="btn btn-dk btn-sm" id="mm-save-btn" style="display:none;margin-top:5px" onclick="saveMMText()">Guardar</button>
+          </div>
+        </div>
+        <div class="cfg-section">
+          <div class="cfg-head">FUNCIONES PROPP ASOCIADAS</div>
+          <div class="cfg-body">
+            <div id="mm-propp-cards" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- end sb-monomito -->
+
+</div><!-- end main -->
 
 <div id="floater"><img id="floater-img" src="" alt=""></div>
 
@@ -556,6 +663,20 @@ document.querySelectorAll('.ttab').forEach(t=>t.addEventListener('click',()=>sho
 function showTab(n){
   document.querySelectorAll('.ttab').forEach(t=>t.classList.toggle('active',t.dataset.panel===n));
   document.querySelectorAll('.tpanel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+n));
+  const isMM=(n==='monomito');
+  // #sidebar = card sidebar. #sb-monomito = monomito sidebar (sibling in #main)
+  const sidebar = document.getElementById('sidebar');
+  const sbMM    = document.getElementById('sb-monomito');
+  if(isMM){
+    sidebar.style.display = 'none';
+    sbMM.style.display    = 'flex';
+  }else{
+    sidebar.style.display = 'flex';
+    sbMM.style.display    = 'none';
+  }
+  // Timeline
+  document.getElementById('tl').style.display    = isMM ? 'none' : '';
+  document.getElementById('tl-mm').style.display = isMM ? 'flex' : 'none';
 }
 document.querySelectorAll('.stab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.stab').forEach(x=>x.classList.remove('active'));
@@ -762,6 +883,9 @@ function showSidebar(card){
     document.getElementById('sv-'+k).style.display='none';
   });
   document.getElementById('ea-notes').value=c.notes||'';renderVerGrid(card.id);
+  // Update phase selector
+  const ph=getPhase(card.id)||'inicio';
+  const psel=document.getElementById('phase-sel');if(psel)psel.value=ph;
 }
 
 // ── EDIT ──
@@ -866,6 +990,24 @@ document.getElementById('rt-sw').addEventListener('change',function(){
   if(rtEnabled&&timeline.length>0)schedRT();
 });
 
+let storySrc='propp'; // 'propp' | 'monomito'
+function setStorySrc(src){
+  storySrc=src;
+  document.getElementById('src-propp-btn').classList.toggle('active',src==='propp');
+  document.getElementById('src-mm-btn').classList.toggle('active',src==='monomito');
+  // Show/hide the right timeline strip WITHOUT changing the main panel tab
+  document.getElementById('tl').style.display        = src==='monomito' ? 'none' : '';
+  document.getElementById('tl-mm').style.display     = src==='monomito' ? 'flex' : 'none';
+  document.getElementById('tl-label').textContent    = src==='monomito' ? 'LÍNEA MONOMITO' : 'LÍNEA NARRATIVA';
+  // Update placeholder text
+  const ph=document.getElementById('story-placeholder');
+  if(ph){
+    ph.innerHTML=src==='monomito'
+      ? 'Ordena los segmentos en la línea del Monomito y pulsa <em>Componer</em>.<br><small style="font-size:12px;opacity:0.5;display:block;margin-top:10px">El Viaje del Héroe según Campbell.</small>'
+      : 'Coloca funciones en la secuencia narrativa y pulsa <em>Componer</em>.<br><small style="font-size:12px;opacity:0.5;display:block;margin-top:10px">Gramática creativa según Rodari sobre Propp.</small>';
+  }
+}
+
 // ── STORY ──
 function resetStory(){
   document.getElementById('story-placeholder').style.display='block';
@@ -876,9 +1018,13 @@ function resetStory(){
 }
 function schedRT(){
   clearTimeout(rtTimeout);if(isGen){rtPending=true;return;}
+  if(storySrc==='propp'&&timeline.length===0)return;
+  if(storySrc==='monomito'&&mmOrder.length===0)return;
   rtTimeout=setTimeout(()=>{if(!isGen)genStory(true);},1200);
 }
 async function genStory(isRT){
+  const src=storySrc||'propp';
+  if(src==='monomito'){await genStoryMonomito();return;}
   if(timeline.length===0)return;
   const key=(document.getElementById('api-key').value||'').replace(/[^\x21-\x7E]/g,'').trim();
   const model=document.getElementById('model-sel').value;
@@ -897,33 +1043,8 @@ async function genStory(isRT){
   document.getElementById('story-funcs').textContent=timeline.map(c=>c.title).join(' → ');
   document.getElementById('story-badge').textContent=modeLabel;
   try{
-    let raw='';
-    if(model==='claude'){
-      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1200,messages:[{role:'user',content:prompt}]})});
-      const d=await r.json();if(d.error)throw new Error(d.error.message);raw=d.content[0].text;
-    }else if(model==='groq'){
-      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:1200})});
-      const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));raw=d.choices[0].message.content;
-    }else if(model==='mistral'){
-      const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'mistral-large-latest',messages:[{role:'user',content:prompt}],max_tokens:1200})});
-      const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));raw=d.choices[0].message.content;
-    }else if(model==='gemini'){
-      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:4000,thinkingConfig:{thinkingBudget:0}}})});
-      const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
-      const parts=d.candidates[0].content.parts||[];
-      raw=parts.filter(p=>p.text&&!p.thought).map(p=>p.text).join('');
-    }
-    let parsed;
-    try{
-      // Normalizar comillas tipográficas antes de extraer
-      let clean=raw.replace(/[\u201C\u201D\u201E\u201F]/g,'"').replace(/[\u2018\u2019\u201A\u201B]/g,"'");
-      // Eliminar cualquier bloque de código markdown (```json ... ```) sea cual sea su forma
-      clean=clean.replace(/`{1,3}(?:json)?\s*/gi,'').replace(/`{1,3}\s*/g,'');
-      // Extraer solo el objeto JSON desde el primer { hasta el último }
-      const start=clean.indexOf('{');const end=clean.lastIndexOf('}');
-      const jsonStr=start>=0&&end>start?clean.slice(start,end+1):clean;
-      parsed=JSON.parse(jsonStr);
-    }catch(e){parsed={paragraphs:[{func:'',text:raw}],moralia:''};}
+    const raw=await callAI(key,model,prompt,1400);
+    let parsed;try{parsed=parseJSON(raw);}catch(e){parsed={paragraphs:[{func:'',text:raw}],moralia:''};}
     document.getElementById('story-generating').style.display='none';
     const body=document.getElementById('story-body');
     curStory={paragraphs:parsed.paragraphs,moralia:parsed.moralia||'',raw:parsed.paragraphs.map(p=>'['+p.func+']\n'+p.text).join('\n\n')};
@@ -939,6 +1060,41 @@ async function genStory(isRT){
     document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Error: '+err.message+'</span>';
   }
   isGen=false;if(rtPending&&rtEnabled){rtPending=false;schedRT();}
+}
+
+async function genStoryMonomito(){
+  loadMM();
+  const key=(document.getElementById('api-key').value||'').replace(/[^\x21-\x7E]/g,'').trim();
+  const model=document.getElementById('model-sel').value;
+  const mode=document.getElementById('mode-sel').value;const isF=mode==='folklore';
+  if(!key){showTab('story');document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Introduce tu API key en el Scriptorium.</span>';return;}
+  const stages=mmOrder.map((id,i)=>{const s=MONOMITO_STAGES.find(x=>x.id===id);const ex=(mmData[id]&&mmData[id].text)||'';return `${i+1}. ${s.name}${ex?': '+ex:''}`;}).join('\n');
+  const styleBlock=isF?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Cierra con moraleja explícita.':'ESTILO: Relato contemporáneo. Personajes psicológicos. SIN moraleja.';
+  const jsonSchema='{"paragraphs":[{"func":"Nombre etapa","text":"Texto párrafo"}],'+(isF?'"moralia":"texto"':'"moralia":""')+'}';
+  const prompt=`Compón un relato siguiendo estas etapas del Monomito. UN PÁRRAFO POR ETAPA en el orden dado.\n\nETAPAS:\n${stages}\n\n- 400-500 palabras total\n- Personajes con nombres, coherentes\n- NO menciones los nombres de las etapas en el texto\n\n${styleBlock}\n\nSOLO JSON:\n${jsonSchema}`;
+  isGen=true;showTab('story');resetStory();
+  document.getElementById('story-placeholder').style.display='none';
+  document.getElementById('story-generating').style.display='block';
+  document.getElementById('story-funcs').textContent=mmOrder.map(id=>MONOMITO_STAGES.find(s=>s.id===id).name).join(' → ');
+  document.getElementById('story-badge').textContent='☯ MONOMITO';
+  try{
+    const raw=await callAI(key,model,prompt,1800);
+    let parsed;try{parsed=parseJSON(raw);}catch(e){parsed={paragraphs:[{func:'',text:raw}],moralia:''};}
+    document.getElementById('story-generating').style.display='none';
+    const body=document.getElementById('story-body');
+    curStory={paragraphs:parsed.paragraphs,moralia:parsed.moralia||'',raw:parsed.paragraphs.map(p=>'['+p.func+']\n'+p.text).join('\n\n')};
+    parsed.paragraphs.forEach(p=>{
+      const div=document.createElement('div');div.className='story-para';
+      if(p.func){const tag=document.createElement('div');tag.className='story-func-tag';tag.textContent=p.func.toUpperCase();div.appendChild(tag);}
+      const txt=document.createElement('div');txt.className='story-para-text';txt.textContent=p.text;div.appendChild(txt);
+      body.appendChild(div);
+    });
+    if(isF&&parsed.moralia){document.getElementById('moralia-text').textContent=parsed.moralia;document.getElementById('story-moralia').style.display='block';}
+  }catch(err){
+    document.getElementById('story-generating').style.display='none';document.getElementById('story-placeholder').style.display='block';
+    document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Error: '+err.message+'</span>';
+  }
+  isGen=false;
 }
 
 const API_LINKS={groq:'https://console.groq.com/keys',mistral:'https://console.mistral.ai/api-keys/',gemini:'https://aistudio.google.com/app/apikey',claude:'https://console.anthropic.com/settings/keys'};
@@ -962,6 +1118,471 @@ document.getElementById('model-sel').addEventListener('change',function(){
 });
 // Cargar key guardada del modelo inicial al arrancar
 loadSavedKey('groq');
+
+// ── PHASE SELECTOR ──
+function savePhase(){
+  if(!selectedCard)return;
+  const newPhase=document.getElementById('phase-sel').value;
+  const id=normId(selectedCard.id);
+  // Remove from all groups
+  Object.keys(NARRATIVE_GROUPS).forEach(ph=>{
+    NARRATIVE_GROUPS[ph]=NARRATIVE_GROUPS[ph].filter(x=>normId(x)!==id);
+    PHASE[id]=null;
+  });
+  // Add to new group
+  NARRATIVE_GROUPS[newPhase].push(id);PHASE[id]=newPhase;
+  // Persist in custom
+  if(!custom[selectedCard.id])custom[selectedCard.id]={};
+  custom[selectedCard.id].phase=newPhase;saveC();
+  renderSpread();
+  const btn=document.querySelector('#stab-config .btn-dk');btn.textContent='✓ Guardado';
+  setTimeout(()=>btn.textContent='Guardar fase',1500);
+}
+
+// patch showSidebar to populate phase selector
+// ── MONOMITO DATA ──
+const MONOMITO_STAGES=[
+  {id:1,name:'Mundo Ordinario',desc:'El héroe se nos presenta en su entorno cotidiano, antes de que comience la aventura. Es el punto de referencia emocional al que el relato vuelve transformado.',example:'Harry vive en el armario bajo la escalera. Luke cultiva humedad en Tatooine. Frodo fuma pipa en la Comarca.',propp:['alejamiento']},
+  {id:2,name:'Llamada a la Aventura',desc:'Un heraldo anuncia que el mundo ordinario ha cambiado o que existe algo más allá. La carencia o el daño activan el deseo de actuar.',example:'Gandalf dice a Frodo que debe destruir el Anillo. R2-D2 entrega el mensaje de Leia. La araña muerde a Peter Parker.',propp:['carencia','dano','informacion']},
+  {id:3,name:'Rechazo de la Llamada',desc:'El héroe duda, teme o rechaza la aventura. Este momento humaniza al protagonista y prepara su transformación posterior.',example:'Frodo es reacio a abandonar la Comarca. Luke duda ante la propuesta de Obi-Wan. Neo no sabe si lo que ve es real.',propp:['desobediencia','prohibicion']},
+  {id:4,name:'Encuentro con el Mentor',desc:'Una figura sabia entrega al héroe conocimiento, objeto mágico o confianza para afrontar lo desconocido.',example:'Obi-Wan entrena a Luke. Morfeo ofrece la píldora roja. El hada madrina equipa a Cenicienta.',propp:['mediacion','donacion']},
+  {id:5,name:'Cruce del Umbral',desc:'El héroe abandona definitivamente el mundo ordinario y entra en el mundo especial. No hay vuelta atrás.',example:'La Comunidad inicia el viaje hacia Mordor. Neo toma la píldora roja. Harry entra por primera vez al Callejón Diagon.',propp:['partida','aceptacion','complicidad']},
+  {id:6,name:'Pruebas, Aliados y Enemigos',desc:'El héroe aprende las reglas del mundo especial a través de una serie de pruebas menores. Forma alianzas y descubre sus primeros enemigos.',example:'Harry se adapta a Hogwarts. Han Solo y Chewbacca se unen a Luke. Spider-Man comienza su vida heroica.',propp:['viaje','reaccion','interrogatorio','engano']},
+  {id:7,name:'Aproximación a la Caverna',desc:'El héroe se prepara para la prueba mayor. Hay un momento de calma tensa antes de la crisis central.',example:'Harry planea recuperar la Piedra Filosofal. La Estrella de la Muerte destruye Alderaan. Nala convence a Simba.',propp:['tarea','trampa']},
+  {id:8,name:'Ordalía',desc:'La crisis central. El héroe enfrenta su mayor miedo o enemigo. A menudo hay una muerte simbólica o literal de la que renacerá transformado.',example:'Obi-Wan se sacrifica ante Darth Vader. Simba enfrenta la verdad sobre Mufasa. Frodo es traicionado por Gollum.',propp:['combate','fracaso','marca']},
+  {id:9,name:'Recompensa',desc:'Tras superar la ordalía, el héroe obtiene la recompensa: objeto, conocimiento, amor o poder que buscaba.',example:'Harry llega a la Piedra Filosofal. Neo acepta su identidad como el Elegido. Simba decide reclamar su reino.',propp:['exito','solucion']},
+  {id:10,name:'Camino de Regreso',desc:'El héroe inicia el retorno al mundo ordinario, pero el peligro aún no ha terminado. La recompensa debe protegerse.',example:'Luke participa en el ataque a la Estrella de la Muerte. Spider-Man lucha contra el Duende Verde. Frodo se acerca al Monte.',propp:['regreso','persecucion','socorro']},
+  {id:11,name:'Resurrección',desc:'El clímax final. El héroe debe aplicar todo lo aprendido en una última prueba que transforma su ser para siempre.',example:'Neo muere y resucita como el Elegido. Simba derrota a Scar. Luke usa la Fuerza para destruir la Estrella de la Muerte.',propp:['reconocimiento','desenmascaramiento','disfraz']},
+  {id:12,name:'Retorno con el Elixir',desc:'El héroe regresa al mundo ordinario transformado, portando el elixir: el conocimiento, el objeto o la sabiduría que beneficia a su comunidad.',example:'Frodo regresa a la Comarca transformado. Neo libera la mente humana. Simba se convierte en rey.',propp:['castigo','boda']}
+];
+
+let mmData={};
+let mmSelected=null;
+let mmOrder=[1,2,3,4,5,6,7,8,9,10,11,12]; // current segment order
+let mmRotation=0; // visual rotation of the wheel in degrees
+
+function loadMM(){
+  try{
+    const d=sessionStorage.getItem('ppc_mm');
+    if(d){const p=JSON.parse(d);mmData=p.data||p;mmOrder=p.order||[1,2,3,4,5,6,7,8,9,10,11,12];mmRotation=p.rotation||0;}
+  }catch(e){}
+}
+function saveMM(){
+  try{sessionStorage.setItem('ppc_mm',JSON.stringify({data:mmData,order:mmOrder,rotation:mmRotation}));}catch(e){}
+}
+
+function renderMMTimeline(){
+  const tl=document.getElementById('tl-mm');
+  tl.innerHTML='';
+  let tlDragSrc=null;
+
+  // Split into two rows of 6
+  const rows=[[...mmOrder.slice(0,6)],[...mmOrder.slice(6,12)]];
+
+  rows.forEach((row,ri)=>{
+    const rowEl=document.createElement('div');
+    rowEl.className='tl-mm-row';
+    row.forEach((id,ii)=>{
+      const globalIdx=ri*6+ii;
+      if(ii>0){
+        const arr=document.createElement('span');
+        arr.className='tl-mm-arrow';
+        arr.textContent='→';
+        rowEl.appendChild(arr);
+      }
+      const stage=MONOMITO_STAGES.find(s=>s.id===id);
+      const sp=document.createElement('span');
+      const isActive=mmSelected===id;
+      const isDone=!!(mmData[id]&&mmData[id].text);
+      sp.className='tl-mm-item'+(isActive?' active':isDone?' done':'');
+      sp.textContent=stage.id+'. '+stage.name;
+      sp.draggable=true;
+      sp.dataset.stageId=id;
+      sp.addEventListener('click',()=>selectMMStage(id));
+      sp.addEventListener('dragstart',e=>{
+        tlDragSrc=globalIdx;
+        e.dataTransfer.effectAllowed='move';
+        setTimeout(()=>sp.style.opacity='0.4',0);
+      });
+      sp.addEventListener('dragend',()=>{sp.style.opacity='';});
+      sp.addEventListener('dragover',e=>{e.preventDefault();sp.style.outline='2px solid var(--ink)';});
+      sp.addEventListener('dragleave',()=>{sp.style.outline='';});
+      sp.addEventListener('drop',e=>{
+        e.preventDefault();sp.style.outline='';
+        if(tlDragSrc!==null && tlDragSrc!==globalIdx){
+          const newOrder=[...mmOrder];
+          const [item]=newOrder.splice(tlDragSrc,1);
+          newOrder.splice(globalIdx,0,item);
+          mmOrder=newOrder;
+          saveMM();
+          buildWheel();
+        }
+        tlDragSrc=null;
+      });
+      rowEl.appendChild(sp);
+    });
+    tl.appendChild(rowEl);
+  });
+}
+
+function buildWheel(){
+  const svg=document.getElementById('monomito-svg');
+  svg.innerHTML='';
+  const n=12, R=210, r=94, cx=0, cy=0;
+  const POP=26;
+
+  // Outer dashed ring (fixed, doesn't rotate)
+  const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  ring.setAttribute('cx',cx);ring.setAttribute('cy',cy);ring.setAttribute('r',R+16);
+  ring.setAttribute('fill','none');ring.setAttribute('stroke','var(--rule)');
+  ring.setAttribute('stroke-width','0.7');ring.setAttribute('stroke-dasharray','4 6');
+  svg.appendChild(ring);
+
+  // ── ROTATING GROUP — all segments live here ──
+  const wheelG=document.createElementNS('http://www.w3.org/2000/svg','g');
+  wheelG.id='mm-wheel-g';
+  wheelG.setAttribute('transform',`rotate(${mmRotation})`);
+  svg.appendChild(wheelG);
+
+  // Inner circle — sits ON TOP of wheelG, stays fixed, is the drag handle
+  const inner=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  inner.setAttribute('cx',cx);inner.setAttribute('cy',cy);inner.setAttribute('r',r-5);
+  inner.setAttribute('fill','var(--white)');inner.setAttribute('stroke','var(--ink)');inner.setAttribute('stroke-width','2');
+  inner.style.cursor='grab';
+  svg.appendChild(inner);
+
+  // Center label (also fixed, on top)
+  const ct=document.createElementNS('http://www.w3.org/2000/svg','text');
+  ct.setAttribute('x',0);ct.setAttribute('y',6);ct.setAttribute('text-anchor','middle');
+  ct.setAttribute('font-family','UnifrakturMaguntia,serif');ct.setAttribute('font-size','16');
+  ct.setAttribute('fill','var(--ink)');ct.textContent='Monomito';
+  ct.style.pointerEvents='none';
+  svg.appendChild(ct);
+
+  const slotAngle = 2*Math.PI/n;
+
+  const getAngleDeg=e=>{
+    const rect=svg.getBoundingClientRect();
+    const mx=((e.clientX-rect.left)/rect.width)*500-250;
+    const my=((e.clientY-rect.top)/rect.height)*500-250;
+    return Math.atan2(my,mx)*180/Math.PI;
+  };
+  const getAngleRad=e=>{
+    const rect=svg.getBoundingClientRect();
+    const mx=((e.clientX-rect.left)/rect.width)*500-250;
+    const my=((e.clientY-rect.top)/rect.height)*500-250;
+    return Math.atan2(my,mx);
+  };
+
+  // ── WHEEL ROTATION — drag center circle only ──
+  let rotDragStart=null, rotBase=mmRotation;
+  let segmentDragActive=false; // set true while dragging a segment
+  inner.addEventListener('mousedown',ev=>{
+    if(segmentDragActive)return; // don't spin while reordering
+    ev.preventDefault();ev.stopPropagation();
+    rotDragStart=getAngleDeg(ev);
+    rotBase=mmRotation;
+    inner.style.cursor='grabbing';
+    const onMove=e=>{
+      const a=getAngleDeg(e);
+      let da=a-rotDragStart;
+      while(da>180)da-=360;while(da<-180)da+=360;
+      mmRotation=rotBase+da;
+      wheelG.setAttribute('transform',`rotate(${mmRotation})`);
+    };
+    const onUp=()=>{
+      inner.style.cursor='grab';
+      saveMM();
+      document.removeEventListener('mousemove',onMove);
+      document.removeEventListener('mouseup',onUp);
+    };
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+  });
+
+  for(let i=0;i<n;i++){
+    const stageId=mmOrder[i];
+    const stage=MONOMITO_STAGES.find(s=>s.id===stageId);
+    const angle   = slotAngle*i - Math.PI/2;
+    const nextAng = angle + slotAngle;
+    const midAng  = angle + slotAngle/2;
+    const isActive= mmSelected===stageId;
+    const isDone  = !!(mmData[stageId]&&mmData[stageId].text);
+
+    const mkPath=(ri,ro,a0,a1)=>{
+      const x1=cx+ri*Math.cos(a0),y1=cy+ri*Math.sin(a0);
+      const x2=cx+ro*Math.cos(a0),y2=cy+ro*Math.sin(a0);
+      const x3=cx+ro*Math.cos(a1),y3=cy+ro*Math.sin(a1);
+      const x4=cx+ri*Math.cos(a1),y4=cy+ri*Math.sin(a1);
+      return `M${x1} ${y1} L${x2} ${y2} A${ro} ${ro} 0 0 1 ${x3} ${y3} L${x4} ${y4} A${ri} ${ri} 0 0 0 ${x1} ${y1}Z`;
+    };
+
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    let cls='mm-segment';
+    if(isActive) cls+=' active';
+    if(isDone&&!isActive) cls+=' done';
+    g.setAttribute('class',cls);
+
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('class','mm-seg-path');
+    path.setAttribute('d',mkPath(r,R,angle,nextAng));
+    path.setAttribute('stroke','var(--ink)');path.setAttribute('stroke-width','1.3');
+    g.appendChild(path);
+
+    // Number near outer edge (fixed to stage.id — won't change on reorder)
+    const outerR = R - 14;
+    const nx = cx + outerR*Math.cos(midAng), ny = cy + outerR*Math.sin(midAng);
+    const nText=document.createElementNS('http://www.w3.org/2000/svg','text');
+    nText.setAttribute('x',nx);nText.setAttribute('y',ny);
+    nText.setAttribute('text-anchor','middle');nText.setAttribute('dominant-baseline','middle');
+    nText.setAttribute('font-family','Cinzel,serif');nText.setAttribute('font-size','11');
+    nText.setAttribute('font-weight','700');nText.setAttribute('class','mm-seg-num');
+    nText.textContent=stage.id;
+    g.appendChild(nText);
+
+    // Name label rotated along arc
+    const lr=(r+R)/2;
+    const lx=cx+lr*Math.cos(midAng), ly=cy+lr*Math.sin(midAng);
+    const lText=document.createElementNS('http://www.w3.org/2000/svg','text');
+    lText.setAttribute('x',lx);lText.setAttribute('y',ly);
+    lText.setAttribute('text-anchor','middle');lText.setAttribute('dominant-baseline','middle');
+    lText.setAttribute('font-family','Cinzel,serif');lText.setAttribute('font-size','8');
+    lText.setAttribute('class','mm-seg-label');
+    lText.setAttribute('transform',`rotate(${(midAng*180/Math.PI)+90},${lx},${ly})`);
+    const words=stage.name.split(' ');
+    if(words.length>2){
+      const half=Math.ceil(words.length/2);
+      const t1=document.createElementNS('http://www.w3.org/2000/svg','tspan');
+      t1.setAttribute('x',lx);t1.setAttribute('dy','-4.5');t1.textContent=words.slice(0,half).join(' ');
+      const t2=document.createElementNS('http://www.w3.org/2000/svg','tspan');
+      t2.setAttribute('x',lx);t2.setAttribute('dy','10');t2.textContent=words.slice(half).join(' ');
+      lText.appendChild(t1);lText.appendChild(t2);
+    }else{lText.textContent=stage.name;}
+    g.appendChild(lText);
+
+    // Done dot
+    if(isDone){
+      const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dot.setAttribute('cx',cx+(R-10)*Math.cos(midAng));
+      dot.setAttribute('cy',cy+(R-10)*Math.sin(midAng));
+      dot.setAttribute('r','4');
+      dot.setAttribute('class','mm-done-dot');
+      g.appendChild(dot);
+    }
+
+    const applyPop=(active)=>{
+      if(active){
+        const dx=Math.cos(midAng)*POP, dy=Math.sin(midAng)*POP;
+        g.setAttribute('transform',`translate(${dx},${dy})`);
+        g.classList.add('mm-dragging');
+      }else{
+        g.removeAttribute('transform');
+        g.classList.remove('mm-dragging');
+      }
+    };
+
+    g.addEventListener('mousedown',ev=>{
+      ev.preventDefault();ev.stopPropagation();
+      segmentDragActive=true;
+      // SET ACTIVE IMMEDIATELY — black on mousedown
+      mmSelected=stageId;
+      svg.querySelectorAll('.mm-segment').forEach(el=>el.classList.remove('active'));
+      g.classList.add('active');
+      let dragStart=getAngleRad(ev);
+      let currentSlot=i, dragging=false;
+      applyPop(true);
+
+      const onMove=e=>{
+        const a=getAngleRad(e);
+        let da=a-dragStart;
+        while(da>Math.PI)da-=2*Math.PI;
+        while(da<-Math.PI)da+=2*Math.PI;
+        const slots=Math.round(da/slotAngle);
+        if(Math.abs(slots)>=1){
+          dragging=true;
+          const newSlot=(currentSlot+slots+n)%n;
+          if(newSlot!==currentSlot){
+            const newOrder=[...mmOrder];
+            const [item]=newOrder.splice(currentSlot,1);
+            newOrder.splice(newSlot,0,item);
+            mmOrder=newOrder;
+            currentSlot=newSlot;
+            dragStart=a;
+            buildWheel();
+            const newG=svg.querySelectorAll('.mm-segment')[newSlot];
+            if(newG){
+              const newMid=slotAngle*newSlot-Math.PI/2+slotAngle/2;
+              const dx=Math.cos(newMid)*POP,dy=Math.sin(newMid)*POP;
+              newG.setAttribute('transform',`translate(${dx},${dy})`);
+              newG.classList.add('mm-dragging');
+            }
+            renderMMTimeline();
+          }
+        }
+      };
+      const onUp=()=>{
+        segmentDragActive=false;
+        document.removeEventListener('mousemove',onMove);
+        document.removeEventListener('mouseup',onUp);
+        applyPop(false);
+        if(!dragging) selectMMStage(stageId);
+        else{saveMM();buildWheel();}
+      };
+      document.addEventListener('mousemove',onMove);
+      document.addEventListener('mouseup',onUp);
+    });
+
+    wheelG.appendChild(g);
+  }
+  renderMMTimeline();
+}
+
+
+function selectMMStage(id){
+  mmSelected=id;
+  buildWheel(); // redraws with active class
+  const stage=MONOMITO_STAGES.find(s=>s.id===id);
+  const pos=mmOrder.indexOf(id);
+  document.getElementById('mm-stage-num-label').textContent='ETAPA '+(pos+1)+' · MONOMITO';
+  document.getElementById('mm-stage-name-label').textContent=stage.name;
+  document.getElementById('monomito-empty').style.display='none';
+  document.getElementById('monomito-detail').style.display='block';
+  document.getElementById('mm-stage-desc').textContent=stage.desc;
+  document.getElementById('mm-stage-example').textContent=stage.example;
+  const userText=(mmData[id]&&mmData[id].text)||'';
+  const ut=document.getElementById('mm-user-text');
+  ut.textContent=userText||'(sin contenido — pulsa ✎ para editar)';
+  ut.style.fontStyle=userText?'normal':'italic';
+  ut.style.color=userText?'var(--ink)':'var(--rule)';
+  document.getElementById('mm-edit-area').style.display='none';
+  document.getElementById('mm-save-btn').style.display='none';
+  const container=document.getElementById('mm-propp-cards');container.innerHTML='';
+  const allCards=[...CARDS_DATA,...(custom.__extra||[])];
+  stage.propp.forEach(pid=>{
+    const card=allCards.find(c=>normId(c.id)===normId(pid));
+    if(!card)return;
+    const div=document.createElement('div');div.className='spread-card';
+    const img=document.createElement('img');img.src=getImg(card.id);img.alt=card.title;
+    const lbl=document.createElement('div');lbl.className='spread-card-name';lbl.textContent=card.title;
+    div.appendChild(img);div.appendChild(lbl);
+    div.addEventListener('click',()=>{selectCard(card);showTab('card');});
+    container.appendChild(div);
+  });
+}
+
+function toggleMMEdit(){
+  const ea=document.getElementById('mm-edit-area'),sv=document.getElementById('mm-save-btn');
+  if(ea.style.display==='block'){ea.style.display='none';sv.style.display='none';}
+  else{ea.value=(mmData[mmSelected]&&mmData[mmSelected].text)||'';ea.style.display='block';sv.style.display='inline-block';ea.focus();}
+}
+function saveMMText(){
+  if(!mmSelected)return;
+  if(!mmData[mmSelected])mmData[mmSelected]={};
+  mmData[mmSelected].text=document.getElementById('mm-edit-area').value.trim();
+  saveMM();selectMMStage(mmSelected);
+}
+function clearMonomito(){
+  mmData={};mmOrder=[1,2,3,4,5,6,7,8,9,10,11,12];mmRotation=0;saveMM();mmSelected=null;
+  buildWheel();
+  document.getElementById('monomito-empty').style.display='flex';
+  document.getElementById('monomito-detail').style.display='none';
+  document.getElementById('mm-stage-num-label').textContent='';
+  document.getElementById('mm-stage-name-label').textContent='';
+}
+
+function downloadMMFragments(){
+  const lines=[];
+  lines.push('MONOMITO — FRAGMENTOS NARRATIVOS');
+  lines.push('='.repeat(40));
+  mmOrder.forEach((id,i)=>{
+    const stage=MONOMITO_STAGES.find(s=>s.id===id);
+    const text=(mmData[id]&&mmData[id].text)||'';
+    lines.push('');
+    lines.push('ETAPA '+(i+1)+': '+stage.name.toUpperCase());
+    lines.push('-'.repeat(30));
+    lines.push(text||'(sin contenido)');
+  });
+  const content=lines.join('\n');
+  // Show copy modal — download blocked in sandboxed iframe
+  let modal=document.getElementById('mm-export-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='mm-export-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(14,12,8,0.75);z-index:3000;display:flex;align-items:center;justify-content:center';
+    modal.innerHTML=`
+      <div style="background:var(--white);border:3px solid var(--black);box-shadow:10px 10px 0 var(--ink);padding:24px 28px;max-width:560px;width:90%;position:relative;max-height:80vh;display:flex;flex-direction:column">
+        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:2px;color:var(--ink-lt);margin-bottom:10px;text-transform:uppercase">Fragmentos del Monomito</div>
+        <textarea id="mm-export-ta" readonly style="flex:1;min-height:300px;background:var(--paper);border:2px solid var(--ink);color:var(--black);font-family:'EB Garamond',serif;font-size:13px;padding:10px;resize:none;overflow-y:auto;white-space:pre;font-variant-ligatures:none"></textarea>
+        <div style="display:flex;gap:10px;margin-top:12px;justify-content:flex-end">
+          <button class="btn btn-dk btn-sm" id="mm-copy-btn" onclick="
+            document.getElementById('mm-export-ta').select();
+            document.execCommand('copy');
+            this.textContent='✓ Copiado';
+            setTimeout(()=>this.textContent='⎘ Copiar todo',1800);
+          ">⎘ Copiar todo</button>
+          <button class="btn btn-lt btn-sm" onclick="document.getElementById('mm-export-modal').style.display='none'">Cerrar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  document.getElementById('mm-export-ta').value=content;
+  modal.style.display='flex';
+}
+
+// ── Shared AI caller ──
+async function callAI(key,model,prompt,maxTokens){
+  maxTokens=maxTokens||2000;
+  if(model==='claude'){
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
+    const d=await r.json();if(d.error)throw new Error(d.error.message);return d.content[0].text;
+  }else if(model==='groq'){
+    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:maxTokens})});
+    const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));return d.choices[0].message.content;
+  }else if(model==='mistral'){
+    const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'mistral-large-latest',messages:[{role:'user',content:prompt}],max_tokens:maxTokens})});
+    const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));return d.choices[0].message.content;
+  }else if(model==='gemini'){
+    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens,thinkingConfig:{thinkingBudget:0}}})});
+    const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
+    return (d.candidates[0].content.parts||[]).filter(p=>p.text&&!p.thought).map(p=>p.text).join('');
+  }
+  throw new Error('Modelo desconocido');
+}
+
+function parseJSON(raw){
+  let c=raw.replace(/[\u201C\u201D\u201E\u201F]/g,'"').replace(/[\u2018\u2019\u201A\u201B]/g,"'");
+  c=c.replace(/`{1,3}(?:json)?\s*/gi,'').replace(/`{1,3}/g,'');
+  const s=c.indexOf('{'),e=c.lastIndexOf('}');
+  return JSON.parse(s>=0?c.slice(s,e+1):c);
+}
+
+async function genMonomito(onlyEmpty){
+  const key=(document.getElementById('api-key').value||'').replace(/[^\x21-\x7E]/g,'').trim();
+  const model=document.getElementById('model-sel').value;
+  if(!key){alert('Introduce tu API key en el Scriptorium.');return;}
+  const proppCtx=timeline.length>0?'\nCartas Propp activas: '+timeline.map(c=>c.title).join(', '):'';
+  const stagesInfo=mmOrder.map(id=>{
+    const s=MONOMITO_STAGES.find(x=>x.id===id);
+    const ex=mmData[id]&&mmData[id].text;
+    if(onlyEmpty&&ex)return null;
+    return `${id}. ${s.name}${ex?' (ya escrita: '+ex+')':''}`;
+  }).filter(Boolean).join('\n');
+  if(!stagesInfo){alert('Todas las etapas ya tienen contenido.');return;}
+  const prompt=`Genera contenido narrativo para estas etapas del Monomito de Campbell.${proppCtx}\n\nETAPAS:\n${stagesInfo}\n\nPara cada etapa: un párrafo breve (40-60 palabras) que describa lo que ocurre.\n\nSOLO JSON. SIN TEXTO ADICIONAL:\n{"stages":[{"id":1,"text":"texto"},...]}`;
+  const btn=document.querySelector('#monomito-actions .btn-dk');btn.textContent='✦ Generando…';btn.disabled=true;
+  try{
+    const raw=await callAI(key,model,prompt,2000);
+    const parsed=parseJSON(raw);
+    parsed.stages.forEach(s=>{if(!mmData[s.id])mmData[s.id]={};mmData[s.id].text=s.text;});
+    saveMM();buildWheel();if(mmSelected)selectMMStage(mmSelected);
+  }catch(e){alert('Error al generar: '+e.message);}
+  btn.textContent='⚜ Generar monomito';btn.disabled=false;
+}
+
+// init monomito on tab click
+document.querySelectorAll('.ttab').forEach(t=>{
+  if(t.dataset.panel==='monomito')t.addEventListener('click',()=>{loadMM();buildWheel();});
+});
 
 init();
 </script>
