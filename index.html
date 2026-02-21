@@ -1057,31 +1057,54 @@ async function genStory(isRT){
 
   let prompt;
   if(isRT&&curStory){
+    const prevFuncs=curStory.paragraphs.map(p=>p.func);
+    const newFuncs=slots.map(s=>s.title);
+    // Detect if this is an extension (new card added) vs reorder
+    const isExtension=newFuncs.length>prevFuncs.length&&newFuncs.slice(0,prevFuncs.length).join('|')===prevFuncs.join('|');
     const prevText=curStory.paragraphs.map(p=>p.text).join(' ');
-    prompt=`Reescribe este relato adaptando la trama al nuevo orden de funciones. Mismos personajes y mundo.
+    if(isExtension){
+      // Just extend: keep everything, add the new beats
+      const newSlots=slots.slice(prevFuncs.length);
+      const newSlotList=newSlots.map((s,i)=>`${prevFuncs.length+i+1}. [${s.title}] ${s.desc}`).join('\n');
+      prompt=`Tienes un relato en curso y debes continuarlo añadiendo los nuevos beats dramáticos al final, con los mismos personajes y mundo.
 
-RELATO ANTERIOR: ${prevText}
+RELATO ACTUAL:
+${prevText}
 
-NUEVO ORDEN (izquierda a derecha, respeta este orden exacto):
-${slotList}
+NUEVOS BEATS A AÑADIR (continúa la historia desde donde quedó):
+${newSlotList}
 
 ${styleBlock}
 
-Devuelve SOLO este JSON con un objeto por función en el mismo orden:
+Devuelve SOLO este JSON con TODOS los párrafos (los anteriores + los nuevos), en orden:
 ${schemaDesc}`;
-  }else{
-    prompt=`Escribe un relato narrativo con estas funciones exactamente en este orden (de la 1 a la ${slots.length}):
+    }else{
+      prompt=`Tienes un relato y un nuevo orden de funciones narrativas. Reescribe la historia manteniendo los mismos personajes, nombres y mundo, pero haciendo que la trama siga los nuevos beats dramáticos en el orden dado. La historia debe ser fluida y cohesionada — no párrafos sueltos, sino una narración con causa y efecto entre cada momento.
+
+RELATO ANTERIOR (mismos personajes y mundo):
+${prevText}
+
+NUEVO ORDEN DE BEATS DRAMÁTICOS (síguelos de izquierda a derecha):
 ${slotList}
 
-Reglas:
-- Un párrafo por función, EN EL ORDEN DADO DE 1 A ${slots.length}
-- Personajes con nombres propios, coherentes
-- NO menciones el número ni el nombre de la función en el texto
-- 35-50 palabras por párrafo
-- Continuidad narrativa entre párrafos consecutivos
 ${styleBlock}
 
-Devuelve SOLO este JSON (un objeto por función, mismo orden que la lista):
+Devuelve SOLO este JSON. Escribe cada "text" como si fuera parte de una misma historia continua:
+${schemaDesc}`;
+    }
+  }else{
+    prompt=`Escribe un relato corto y cohesionado de unos ${slots.length*45} palabras. Los personajes, el mundo y la causalidad deben ser consistentes de principio a fin. La historia sigue estos beats dramáticos en este orden exacto:
+
+${slotList}
+
+Instrucciones:
+- Un párrafo por beat, en el orden dado del 1 al ${slots.length}
+- Cada párrafo debe conectar causalmente con el anterior y preparar el siguiente
+- Mismos personajes con nombres propios a lo largo de toda la historia
+- NO menciones el número ni el nombre del beat en el texto
+- ${styleBlock}
+
+Devuelve SOLO este JSON (respeta el orden de la lista, escríbelo como una historia única):
 ${schemaDesc}`;
   }
 
@@ -1139,18 +1162,18 @@ async function genStoryMonomito(){
     ?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Cierra con moraleja explícita.'
     :'ESTILO: Relato contemporáneo. Personajes psicológicos. SIN moraleja. Cierre emocionalmente resolutivo.';
 
-  const prompt=`Escribe un relato del Viaje del Héroe con estas etapas exactamente en este orden (de la 1 a la ${stages.length}):
+  const prompt=`Escribe un relato cohesionado del Viaje del Héroe de unos ${stages.length*45} palabras. Los personajes, el mundo y la causalidad deben ser consistentes de principio a fin. La historia sigue estas etapas dramáticas en este orden exacto:
+
 ${stageList}
 
-Reglas:
-- Un párrafo por etapa, EN EL ORDEN DADO DE 1 A ${stages.length}
-- Personajes con nombres propios, coherentes entre sí
-- NO menciones el número ni el nombre de la etapa en el texto
-- 35-50 palabras por párrafo
-- Continuidad narrativa entre párrafos consecutivos
-${styleBlock}
+Instrucciones:
+- Un párrafo por etapa, en el orden dado del 1 al ${stages.length}
+- Cada párrafo debe surgir causalmente del anterior y preparar el siguiente: son momentos de una misma historia, no escenas separadas
+- Mismos personajes con nombres propios a lo largo de toda la historia
+- NO menciones el número ni el nombre de la etapa en el texto narrativo
+- ${styleBlock}
 
-Devuelve SOLO este JSON (un objeto por etapa, mismo orden que la lista):
+Devuelve SOLO este JSON (un objeto por etapa, en el mismo orden de la lista, escritos como historia continua):
 ${schemaDesc}`;
 
   isGen=true;showTab('story');resetStory();
