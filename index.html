@@ -1050,39 +1050,14 @@ async function genStory(isRT){
   const modeLabel=isF?'FOLKLORE · CUENTO':'CONTEMPORÁNEO';
   const styleBlock=isF?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Personajes arquetípicos. Mundo mágico. Cierra con moraleja.':'ESTILO: Relato contemporáneo. Personajes psicológicos. SIN moraleja. Cierre emocionalmente resolutivo.';
 
-  // Ordered slot list — numbered neutrally so model can't "correct" Propp sequence
-  const slots=timeline.map((c,i)=>({key:i+1,title:c.title,desc:c.propp}));
-  const slotList=slots.map(s=>`${s.key}. [${s.title}] ${s.desc}`).join('\n');
-  const schemaDesc=`{"paragraphs":[${slots.map(s=>`{"func":"${s.title}","text":"..."}`).join(',')}]${isF?',"moralia":"..."':',"moralia":""}'}`;
+  const funcs=timeline.map((c,i)=>`${i+1}. ${c.title} — ${c.propp}`).join('\n');
+  const jsonSchema='{"paragraphs":[{"func":"Nombre función","text":"Texto párrafo"}],'+(isF?'"moralia":"texto"':'"moralia":""}')+'}';
 
   let prompt;
   if(isRT&&curStory){
-    const prevText=curStory.paragraphs.map(p=>p.text).join(' ');
-    prompt=`Reescribe este relato adaptando la trama al nuevo orden de funciones. Mismos personajes y mundo.
-
-RELATO ANTERIOR: ${prevText}
-
-NUEVO ORDEN (izquierda a derecha, respeta este orden exacto):
-${slotList}
-
-${styleBlock}
-
-Devuelve SOLO este JSON con un objeto por función en el mismo orden:
-${schemaDesc}`;
+    prompt='Reescribe esta historia con el NUEVO ORDEN de funciones. Mismos personajes y mundo, trama adaptada.\n\nHISTORIA:\n'+curStory.raw+'\n\nNUEVO ORDEN:\n'+funcs+'\n\n'+styleBlock+'\n\nSOLO JSON:\n'+jsonSchema;
   }else{
-    prompt=`Escribe un relato narrativo con estas funciones exactamente en este orden (de la 1 a la ${slots.length}):
-${slotList}
-
-Reglas:
-- Un párrafo por función, EN EL ORDEN DADO DE 1 A ${slots.length}
-- Personajes con nombres propios, coherentes
-- NO menciones el número ni el nombre de la función en el texto
-- 35-50 palabras por párrafo
-- Continuidad narrativa entre párrafos consecutivos
-${styleBlock}
-
-Devuelve SOLO este JSON (un objeto por función, mismo orden que la lista):
-${schemaDesc}`;
+    prompt='Compón un relato con estas funciones de Propp/Rodari. UN PÁRRAFO POR FUNCIÓN en orden exacto.\n\nFUNCIONES:\n'+funcs+'\n\n- Inicio, desarrollo, cierre completo\n- Personajes con nombres, coherentes\n- NO menciones las funciones\n- 300-420 palabras\n\n'+styleBlock+'\n\nSOLO JSON. RESPONDE ÚNICAMENTE CON EL JSON, SIN TEXTO ADICIONAL, SIN BLOQUES DE CÓDIGO, SIN COMILLAS EXTRAS:\n'+jsonSchema;
   }
 
   isGen=true;showTab('story');resetStory();
@@ -1126,32 +1101,10 @@ async function genStoryMonomito(){
   const model=document.getElementById('model-sel').value;
   const mode=document.getElementById('mode-sel').value;const isF=mode==='folklore';
   if(!key){showTab('story');document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Introduce tu API key en el Scriptorium.</span>';return;}
-  // Ordered stage list numbered plainly — avoids model "correcting" to canonical Campbell order
-  const stages=mmOrder.map((id,i)=>{
-    const s=MONOMITO_STAGES.find(x=>x.id===id);
-    const ex=(mmData[id]&&mmData[id].text)||'';
-    return {key:i+1,name:s.name,ex};
-  });
-  const stageList=stages.map(s=>`${s.key}. [${s.name}]${s.ex?' — '+s.ex:''}`).join('\n');
-  const schemaDesc=`{"paragraphs":[${stages.map(s=>`{"func":"${s.name}","text":"..."}`).join(',')}]${isF?',"moralia":"..."':',"moralia":""}'}`;
-
-  const styleBlock=isF
-    ?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Cierra con moraleja explícita.'
-    :'ESTILO: Relato contemporáneo. Personajes psicológicos. SIN moraleja. Cierre emocionalmente resolutivo.';
-
-  const prompt=`Escribe un relato del Viaje del Héroe con estas etapas exactamente en este orden (de la 1 a la ${stages.length}):
-${stageList}
-
-Reglas:
-- Un párrafo por etapa, EN EL ORDEN DADO DE 1 A ${stages.length}
-- Personajes con nombres propios, coherentes entre sí
-- NO menciones el número ni el nombre de la etapa en el texto
-- 35-50 palabras por párrafo
-- Continuidad narrativa entre párrafos consecutivos
-${styleBlock}
-
-Devuelve SOLO este JSON (un objeto por etapa, mismo orden que la lista):
-${schemaDesc}`;
+  const stages=mmOrder.map((id,i)=>{const s=MONOMITO_STAGES.find(x=>x.id===id);const ex=(mmData[id]&&mmData[id].text)||'';return `${i+1}. ${s.name}${ex?': '+ex:''}`;}).join('\n');
+  const styleBlock=isF?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Cierra con moraleja explícita.':'ESTILO: Relato contemporáneo. Personajes psicológicos. SIN moraleja. Cierre emocionalmente resolutivo.';
+  const jsonSchema='{"paragraphs":[{"func":"Nombre etapa","text":"Texto párrafo"}],'+(isF?'"moralia":"texto"':'"moralia":""}')+'}';
+  const prompt='Compón un relato siguiendo estas etapas del Monomito. UN PÁRRAFO POR ETAPA en el orden dado.\n\nETAPAS:\n'+stages+'\n\n- 400-500 palabras total\n- Personajes con nombres, coherentes\n- NO menciones los nombres de las etapas en el texto\n\n'+styleBlock+'\n\nSOLO JSON:\n'+jsonSchema;
 
   isGen=true;showTab('story');resetStory();
   document.getElementById('story-placeholder').style.display='none';
@@ -1643,9 +1596,8 @@ async function callAI(key,model,prompt,maxTokens,forceJson){
     const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify(body)});
     const d=await r.json();if(d.error)throw new Error(d.error.message);return d.content[0].text;
   }else if(model==='groq'){
-    // Groq supports json_object natively — no markdown wrapping
+    // No response_format — Llama 3.3 interprets json schema placeholders literally with json_object mode
     const body={model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:maxTokens};
-    if(forceJson) body.response_format={type:'json_object'};
     const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(body)});
     const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));return d.choices[0].message.content;
   }else if(model==='mistral'){
@@ -1722,7 +1674,11 @@ async function genMonomito(onlyEmpty){
 
 // init monomito on tab click
 document.querySelectorAll('.ttab').forEach(t=>{
-  if(t.dataset.panel==='monomito')t.addEventListener('click',()=>{loadMM();buildWheel();});
+  if(t.dataset.panel==='monomito'){
+    t.addEventListener('click',()=>{loadMM();buildWheel();setStorySrc('monomito');});
+  } else if(t.dataset.panel==='card'||t.dataset.panel==='spread'||t.dataset.panel==='baraja'){
+    t.addEventListener('click',()=>setStorySrc('propp'));
+  }
 });
 
 // Mouse wheel zoom on the monomito panel
