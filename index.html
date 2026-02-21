@@ -26,7 +26,7 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
 #header-title{font-family:"Cinzel",serif;font-size:11px;color:var(--ink-lt);letter-spacing:1.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #seq{display:none}
 /* Corner brand — fixed bottom-right */
-#corner-brand{position:fixed;bottom:0;right:0;z-index:500;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;padding:0 16px 12px 0}
+#corner-brand{position:fixed;bottom:0;right:0;z-index:500;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;width:260px;padding-bottom:12px}
 #corner-logo{height:220px;width:auto;display:block;filter:none;opacity:1}
 #corner-taller{font-family:"Cinzel",serif;font-size:11px;letter-spacing:2.5px;color:var(--ink);text-transform:uppercase;text-align:center;font-weight:600}
 #main{display:flex;flex:1;min-height:0;overflow:hidden}
@@ -1186,6 +1186,10 @@ function loadMM(){
 }
 function saveMM(){
   try{sessionStorage.setItem('ppc_mm',JSON.stringify({data:mmData,order:mmOrder,rotation:mmRotation}));}catch(e){}
+  // Trigger real-time regen if active
+  if(typeof rtEnabled!=='undefined' && rtEnabled && typeof storySrc!=='undefined' && storySrc==='monomito'){
+    schedRT();
+  }
 }
 
 function renderMMTimeline(){
