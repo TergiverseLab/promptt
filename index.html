@@ -1080,23 +1080,49 @@ async function genStory(isRT){
 }
 
 async function genStoryMonomito(){
-  loadMM();
+  // Don't call loadMM() here — use live mmOrder already in memory
   const key=(document.getElementById('api-key').value||'').replace(/[^\x21-\x7E]/g,'').trim();
   const model=document.getElementById('model-sel').value;
   const mode=document.getElementById('mode-sel').value;const isF=mode==='folklore';
   if(!key){showTab('story');document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Introduce tu API key en el Scriptorium.</span>';return;}
-  const stages=mmOrder.map((id,i)=>{const s=MONOMITO_STAGES.find(x=>x.id===id);const ex=(mmData[id]&&mmData[id].text)||'';return `${i+1}. ${s.name}${ex?': '+ex:''}`;}).join('\n');
-  const styleBlock=isF?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Cierra con moraleja explícita.':'ESTILO: Relato contemporáneo. Personajes psicológicos. SIN moraleja.';
-  const jsonSchema='{"paragraphs":[{"func":"Nombre etapa","text":"Texto párrafo"}],'+(isF?'"moralia":"texto"':'"moralia":""')+'}';
-  const prompt=`Compón un relato siguiendo estas etapas del Monomito. UN PÁRRAFO POR ETAPA en el orden dado.\n\nETAPAS:\n${stages}\n\n- 400-500 palabras total\n- Personajes con nombres, coherentes\n- NO menciones los nombres de las etapas en el texto\n\n${styleBlock}\n\nSOLO JSON:\n${jsonSchema}`;
+  // Build ordered stage list from LIVE mmOrder
+  const orderedStages=mmOrder.map((id,i)=>{
+    const s=MONOMITO_STAGES.find(x=>x.id===id);
+    const ex=(mmData[id]&&mmData[id].text)||'';
+    return `${i+1}. ${s.name}${ex?' (nota: '+ex+')':''}`;
+  }).join('\n');
+  const styleBlock=isF
+    ?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Cierra con moraleja explícita.'
+    :'ESTILO: Relato contemporáneo. Personajes psicológicos. SIN moraleja. Cierre emocionalmente resolutivo.';
+  const jsonSchema='{"paragraphs":[{"func":"nombre_etapa","text":"texto_parrafo"}],'+(isF?'"moralia":"texto"':'"moralia":""')+'}';
+  const prompt=`Eres un narrador experto. Escribe un relato EXACTAMENTE en el orden de etapas indicado. NO reordenes las etapas. NO saltes ninguna. Escribe UN párrafo por etapa.
+
+ORDEN EXACTO DE ETAPAS (respétalo escrupulosamente):
+${orderedStages}
+
+INSTRUCCIONES:
+- Un párrafo por etapa, en el orden exacto de la lista anterior
+- Personajes con nombres propios, coherentes entre sí
+- NO menciones los nombres de las etapas dentro del texto narrativo
+- 30-50 palabras por párrafo
+${styleBlock}
+
+RESPONDE ÚNICAMENTE CON ESTE JSON, SIN TEXTO ADICIONAL, SIN BLOQUES DE CÓDIGO MARKDOWN:
+${jsonSchema}`;
+
   isGen=true;showTab('story');resetStory();
   document.getElementById('story-placeholder').style.display='none';
   document.getElementById('story-generating').style.display='block';
   document.getElementById('story-funcs').textContent=mmOrder.map(id=>MONOMITO_STAGES.find(s=>s.id===id).name).join(' → ');
   document.getElementById('story-badge').textContent='☯ MONOMITO';
   try{
-    const raw=await callAI(key,model,prompt,1800);
-    let parsed;try{parsed=parseJSON(raw);}catch(e){parsed={paragraphs:[{func:'',text:raw}],moralia:''};}
+    const raw=await callAI(key,model,prompt,2000);
+    let parsed;
+    try{parsed=parseJSON(raw);}
+    catch(e){
+      // Last resort: show cleaned text if JSON parse fails completely
+      parsed={paragraphs:[{func:'',text:raw.replace(/```json|```/g,'').trim()}],moralia:''};
+    }
     document.getElementById('story-generating').style.display='none';
     const body=document.getElementById('story-body');
     curStory={paragraphs:parsed.paragraphs,moralia:parsed.moralia||'',raw:parsed.paragraphs.map(p=>'['+p.func+']\n'+p.text).join('\n\n')};
@@ -1111,7 +1137,7 @@ async function genStoryMonomito(){
     document.getElementById('story-generating').style.display='none';document.getElementById('story-placeholder').style.display='block';
     document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Error: '+err.message+'</span>';
   }
-  isGen=false;
+  isGen=false;if(rtPending&&rtEnabled){rtPending=false;schedRT();}
 }
 
 const API_LINKS={groq:'https://console.groq.com/keys',mistral:'https://console.mistral.ai/api-keys/',gemini:'https://aistudio.google.com/app/apikey',claude:'https://console.anthropic.com/settings/keys'};
@@ -1581,10 +1607,16 @@ async function callAI(key,model,prompt,maxTokens){
 }
 
 function parseJSON(raw){
+  // Fix curly/smart quotes
   let c=raw.replace(/[\u201C\u201D\u201E\u201F]/g,'"').replace(/[\u2018\u2019\u201A\u201B]/g,"'");
-  c=c.replace(/`{1,3}(?:json)?\s*/gi,'').replace(/`{1,3}/g,'');
+  // Strip ALL markdown code fence variants: ```json, ```JSON, ```, ` etc.
+  c=c.replace(/```[a-zA-Z]*\n?/g,'').replace(/```/g,'').replace(/`/g,'');
+  // Strip leading/trailing whitespace
+  c=c.trim();
+  // Extract just the JSON object (from first { to last })
   const s=c.indexOf('{'),e=c.lastIndexOf('}');
-  return JSON.parse(s>=0?c.slice(s,e+1):c);
+  if(s>=0 && e>s) c=c.slice(s,e+1);
+  return JSON.parse(c);
 }
 
 async function genMonomito(onlyEmpty){
