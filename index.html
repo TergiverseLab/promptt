@@ -22,12 +22,13 @@
 
 /* ── LAYOUT ── */
 body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(--ink);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-#header{background:var(--white);border-bottom:3px double var(--ink);padding:0 20px;display:flex;align-items:center;gap:16px;height:132px;flex-shrink:0}
-.brand{display:flex;align-items:center;flex-shrink:0}
-#brand-logo{height:120px;width:auto;display:block}
-#seq{flex:1;font-family:"Cinzel",serif;font-size:11px;color:var(--ink-lt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.8px;min-width:0}
-#seq .sep{color:var(--rule);margin:0 5px}
-#seq .empty{font-style:italic;font-family:"EB Garamond",serif;font-size:13px;color:var(--rule)}
+#header{background:var(--white);border-bottom:3px double var(--ink);padding:0 24px;display:flex;align-items:center;height:48px;flex-shrink:0;position:relative}
+#header-title{font-family:"Cinzel",serif;font-size:11px;color:var(--ink-lt);letter-spacing:1.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#seq{display:none}
+/* Corner brand — fixed bottom-right */
+#corner-brand{position:fixed;bottom:0;right:0;z-index:500;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;padding:0 16px 12px 0}
+#corner-logo{height:220px;width:auto;display:block;filter:none;opacity:1}
+#corner-taller{font-family:"Cinzel",serif;font-size:11px;letter-spacing:2.5px;color:var(--ink);text-transform:uppercase;text-align:center;font-weight:600}
 #main{display:flex;flex:1;min-height:0;overflow:hidden}
 
 /* ── BUTTONS ── */
@@ -251,7 +252,7 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
 /* ── MONOMITO ── */
 #panel-monomito{background:var(--paper);align-items:center;justify-content:center;flex-direction:column}
 #monomito-wheel-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:6px;width:100%;min-height:0;overflow:hidden}
-#monomito-svg{width:min(680px,calc(100vh - 200px));height:min(680px,calc(100vh - 200px));overflow:visible;display:block}
+#monomito-svg{width:min(680px,calc(100vh - 200px));height:min(680px,calc(100vh - 200px));overflow:visible;display:block;transition:transform 0.2s;transform-origin:center center}
 #monomito-actions{flex-shrink:0;padding:10px 16px;border-top:2px solid var(--ink);background:var(--white);display:flex;gap:8px;flex-wrap:wrap;width:100%;box-sizing:border-box}
 #sb-mm-body::-webkit-scrollbar{width:4px}
 #sb-mm-body::-webkit-scrollbar-thumb{background:var(--ink)}
@@ -299,10 +300,12 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
 <body>
 
 <div id="header">
-  <div class="brand">
-    <img id="brand-logo" src="logo_promppt.png" alt="PRO(m)PP(t)">
-  </div>
-  <div id="seq"><span class="empty">Arrastra cartas a la línea narrativa…</span></div>
+  <div id="header-title">Bienvenido a Pro(m)pp(t) Generator &nbsp;·&nbsp; Arrastra cartas a la línea narrativa</div>
+</div>
+
+<div id="corner-brand">
+  <img id="corner-logo" src="logo_promppt.png" alt="PRO(m)PP(t)">
+  <div id="corner-taller">Taller audiovisual BAU</div>
 </div>
 
 <div id="main">
@@ -373,6 +376,9 @@ body{font-family:"EB Garamond",Georgia,serif;background:var(--paper);color:var(-
           <svg id="monomito-svg" viewBox="-250 -250 500 500" xmlns="http://www.w3.org/2000/svg"></svg>
         </div>
         <div id="monomito-actions">
+          <button class="btn btn-lt btn-sm" onclick="mmZoom(0.15)" title="Acercar">＋</button>
+          <button class="btn btn-lt btn-sm" onclick="mmZoom(-0.15)" title="Alejar">－</button>
+          <button class="btn btn-lt btn-sm" onclick="mmZoomReset()" title="Restablecer zoom">⊙</button>
           <button class="btn btn-lt btn-sm" onclick="downloadMMFragments()">⎘ Exportar fragmentos</button>
           <button class="btn btn-lt btn-sm" onclick="clearMonomito()">✕ Limpiar rueda</button>
         </div>
@@ -636,7 +642,7 @@ const PHASE={};
 Object.entries(NARRATIVE_GROUPS).forEach(([ph,ids])=>ids.forEach(id=>PHASE[id]=ph));
 function getPhase(id){const n=normId(id);return PHASE[n]||PHASE[Object.keys(PHASE).find(k=>normId(k)===n)]||null;}
 
-['deck-logo','hint-logo','sb-logo'].forEach(id=>{const el=document.getElementById(id);if(el)el.src=LOGO_IMG;});
+['deck-logo','hint-logo','sb-logo','corner-logo'].forEach(id=>{const el=document.getElementById(id);if(el)el.src=LOGO_IMG;});
 
 let deck=[],timeline=[],selectedCard=null,verIdx={};
 let rtEnabled=false,rtTimeout=null,rtPending=false,isGen=false,curStory=null;
@@ -664,7 +670,6 @@ function showTab(n){
   document.querySelectorAll('.ttab').forEach(t=>t.classList.toggle('active',t.dataset.panel===n));
   document.querySelectorAll('.tpanel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+n));
   const isMM=(n==='monomito');
-  // #sidebar = card sidebar. #sb-monomito = monomito sidebar (sibling in #main)
   const sidebar = document.getElementById('sidebar');
   const sbMM    = document.getElementById('sb-monomito');
   if(isMM){
@@ -674,9 +679,20 @@ function showTab(n){
     sidebar.style.display = 'flex';
     sbMM.style.display    = 'none';
   }
-  // Timeline
-  document.getElementById('tl').style.display    = isMM ? 'none' : '';
-  document.getElementById('tl-mm').style.display = isMM ? 'flex' : 'none';
+  // Carta/Baraja → always Propp timeline
+  // Monomito → always MM timeline
+  // Relato → follow storySrc
+  let showMM;
+  if(n==='card' || n==='spread'){
+    showMM = false;
+  } else if(n==='monomito'){
+    showMM = true;
+  } else { // story
+    showMM = (typeof storySrc!=='undefined' && storySrc==='monomito');
+  }
+  document.getElementById('tl').style.display    = showMM ? 'none' : '';
+  document.getElementById('tl-mm').style.display = showMM ? 'flex' : 'none';
+  document.getElementById('tl-label').textContent = showMM ? 'LÍNEA MONOMITO' : 'LÍNEA NARRATIVA';
 }
 document.querySelectorAll('.stab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.stab').forEach(x=>x.classList.remove('active'));
@@ -847,6 +863,7 @@ function makeSpreadCard(card,inTL){
 // ── SEQ ──
 function updateSeq(){
   const el=document.getElementById('seq');
+  if(!el)return;
   if(timeline.length===0){el.innerHTML='<span class="empty">Arrastra cartas a la línea narrativa…</span>';return;}
   el.innerHTML=timeline.map((c,i)=>(i>0?'<span class="sep">→</span>':'')+
     '<span style="color:var(--ink)">'+c.title.toUpperCase()+'</span>').join('');
@@ -1481,6 +1498,16 @@ function saveMMText(){
   mmData[mmSelected].text=document.getElementById('mm-edit-area').value.trim();
   saveMM();selectMMStage(mmSelected);
 }
+let mmScale=1;
+function mmZoom(delta){
+  mmScale=Math.min(2.2,Math.max(0.4,mmScale+delta));
+  document.getElementById('monomito-svg').style.transform=`scale(${mmScale})`;
+}
+function mmZoomReset(){
+  mmScale=1;
+  document.getElementById('monomito-svg').style.transform='scale(1)';
+}
+
 function clearMonomito(){
   mmData={};mmOrder=[1,2,3,4,5,6,7,8,9,10,11,12];mmRotation=0;saveMM();mmSelected=null;
   buildWheel();
@@ -1583,6 +1610,12 @@ async function genMonomito(onlyEmpty){
 document.querySelectorAll('.ttab').forEach(t=>{
   if(t.dataset.panel==='monomito')t.addEventListener('click',()=>{loadMM();buildWheel();});
 });
+
+// Mouse wheel zoom on the monomito panel
+document.getElementById('monomito-wheel-wrap').addEventListener('wheel',e=>{
+  e.preventDefault();
+  mmZoom(e.deltaY<0?0.08:-0.08);
+},{passive:false});
 
 init();
 </script>
