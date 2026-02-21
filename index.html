@@ -1041,68 +1041,40 @@ function schedRT(){
 }
 async function genStory(isRT){
   const src=storySrc||'propp';
-  if(src==='monomito'){await genStoryMonomito();return;}
+  if(src==='monomito'){await genStoryMonomito(isRT);return;}
   if(timeline.length===0)return;
   const key=(document.getElementById('api-key').value||'').replace(/[^\x21-\x7E]/g,'').trim();
   const model=document.getElementById('model-sel').value;
   const mode=document.getElementById('mode-sel').value;const isF=mode==='folklore';
   if(!key){showTab('story');document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Introduce tu API key en el Scriptorium.</span>';return;}
+  const funcs=timeline.map((c,i)=>`${i+1}. ${c.title} — ${c.propp}`).join('\n');
   const modeLabel=isF?'FOLKLORE · CUENTO':'CONTEMPORÁNEO';
-  const styleBlock=isF?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Personajes arquetípicos. Mundo mágico. Cierra con moraleja.':'ESTILO: Relato contemporáneo. Personajes psicológicos. SIN moraleja. Cierre emocionalmente resolutivo.';
-
-  // Ordered slot list — numbered neutrally so model can't "correct" Propp sequence
-  const slots=timeline.map((c,i)=>({key:i+1,title:c.title,desc:c.propp}));
-  const slotList=slots.map(s=>`${s.key}. [${s.title}] ${s.desc}`).join('\n');
-  const schemaDesc=`{"paragraphs":[${slots.map(s=>`{"func":"${s.title}","text":"..."}`).join(',')}]${isF?',"moralia":"..."':',"moralia":""}'}`;
-
+  const styleBlock=isF?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Fórmulas orales. Personajes arquetípicos. Mundo mágico. Cierra con moraleja explícita.':'ESTILO: Relato contemporáneo. Personajes psicológicos. Ambientación concreta. SIN moraleja. Cierre emocionalmente resolutivo.';
+  const jsonSchema='{"paragraphs":[{"func":"Nombre función","text":"Texto párrafo"}],'+(isF?'"moralia":"texto"':'"moralia":""}')+'}';
   let prompt;
   if(isRT&&curStory){
-    const prevText=curStory.paragraphs.map(p=>p.text).join(' ');
-    prompt=`Reescribe este relato adaptando la trama al nuevo orden de funciones. Mismos personajes y mundo.
-
-RELATO ANTERIOR: ${prevText}
-
-NUEVO ORDEN (izquierda a derecha, respeta este orden exacto):
-${slotList}
-
-${styleBlock}
-
-Devuelve SOLO este JSON con un objeto por función en el mismo orden:
-${schemaDesc}`;
+    const prevFuncs=curStory.paragraphs.map(p=>p.func);
+    const curFuncs=timeline.map(c=>c.title);
+    // Detect extension: same start, new cards added at end or middle
+    const isExtension=curFuncs.length>prevFuncs.length&&prevFuncs.every((f,i)=>curFuncs[i]===f);
+    if(isExtension){
+      const newFuncs=timeline.slice(prevFuncs.length).map((c,i)=>`${prevFuncs.length+i+1}. ${c.title} — ${c.propp}`).join('\n');
+      const allSchema='{"paragraphs":[{"func":"Nombre función","text":"Texto párrafo"}],'+(isF?'"moralia":"texto"':'"moralia":""}')+'}';
+      prompt='Continúa esta historia añadiendo UN PÁRRAFO POR CADA NUEVA FUNCIÓN al final. Mismos personajes y mundo, coherencia total.\n\nHISTORIA ACTUAL:\n'+curStory.raw+'\n\nNUEVAS FUNCIONES A AÑADIR:\n'+newFuncs+'\n\n'+styleBlock+'\n\nDevuelve TODO el JSON (párrafos existentes + nuevos):\n'+allSchema;
+    }else{
+      prompt='Reescribe esta historia con el NUEVO ORDEN de funciones. IMPORTANTE: mantén exactamente los mismos personajes (nombres, relaciones, mundo), solo cambia cómo se estructura la trama.\n\nHISTORIA ANTERIOR (mismos personajes):\n'+curStory.raw+'\n\nNUEVO ORDEN:\n'+funcs+'\n\n'+styleBlock+'\n\nSOLO JSON:\n'+jsonSchema;
+    }
   }else{
-    prompt=`Escribe un relato narrativo con estas funciones exactamente en este orden (de la 1 a la ${slots.length}):
-${slotList}
-
-Reglas:
-- Un párrafo por función, EN EL ORDEN DADO DE 1 A ${slots.length}
-- Personajes con nombres propios, coherentes
-- NO menciones el número ni el nombre de la función en el texto
-- 35-50 palabras por párrafo
-- Continuidad narrativa entre párrafos consecutivos
-${styleBlock}
-
-Devuelve SOLO este JSON (un objeto por función, mismo orden que la lista):
-${schemaDesc}`;
+    prompt='Compón un relato con estas funciones de Propp/Rodari. UN PÁRRAFO POR FUNCIÓN en orden exacto.\n\nFUNCIONES:\n'+funcs+'\n\n- Inicio, desarrollo, cierre completo\n- Personajes con nombres, coherentes\n- NO menciones las funciones\n- 300-420 palabras\n\n'+styleBlock+'\n\nSOLO JSON. RESPONDE ÚNICAMENTE CON EL JSON, SIN TEXTO ADICIONAL, SIN BLOQUES DE CÓDIGO, SIN COMILLAS EXTRAS:\n'+jsonSchema;
   }
-
   isGen=true;showTab('story');resetStory();
   document.getElementById('story-placeholder').style.display='none';
   document.getElementById('story-generating').style.display='block';
   document.getElementById('story-funcs').textContent=timeline.map(c=>c.title).join(' → ');
   document.getElementById('story-badge').textContent=modeLabel;
   try{
-    const raw=await callAI(key,model,prompt,1800,true);
-    let parsed;
-    try{
-      parsed=parseJSON(raw);
-      if(!parsed.paragraphs||!Array.isArray(parsed.paragraphs)) throw new Error('missing paragraphs');
-    }catch(e){
-      document.getElementById('story-generating').style.display='none';
-      document.getElementById('story-placeholder').style.display='block';
-      document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Error procesando respuesta. Inténtalo de nuevo o cambia de modelo.</span>';
-      isGen=false;if(rtPending&&rtEnabled){rtPending=false;schedRT();}
-      return;
-    }
+    const raw=await callAI(key,model,prompt,1800);
+    let parsed;try{parsed=parseJSON(raw);}catch(e){parsed={paragraphs:[{func:'',text:raw}],moralia:''};}
     document.getElementById('story-generating').style.display='none';
     const body=document.getElementById('story-body');
     curStory={paragraphs:parsed.paragraphs,moralia:parsed.moralia||'',raw:parsed.paragraphs.map(p=>'['+p.func+']\n'+p.text).join('\n\n')};
@@ -1120,57 +1092,28 @@ ${schemaDesc}`;
   isGen=false;if(rtPending&&rtEnabled){rtPending=false;schedRT();}
 }
 
-async function genStoryMonomito(){
-  // Don't call loadMM() here — use live mmOrder already in memory
+async function genStoryMonomito(isRT){
   const key=(document.getElementById('api-key').value||'').replace(/[^\x21-\x7E]/g,'').trim();
   const model=document.getElementById('model-sel').value;
   const mode=document.getElementById('mode-sel').value;const isF=mode==='folklore';
   if(!key){showTab('story');document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Introduce tu API key en el Scriptorium.</span>';return;}
-  // Ordered stage list numbered plainly — avoids model "correcting" to canonical Campbell order
-  const stages=mmOrder.map((id,i)=>{
-    const s=MONOMITO_STAGES.find(x=>x.id===id);
-    const ex=(mmData[id]&&mmData[id].text)||'';
-    return {key:i+1,name:s.name,ex};
-  });
-  const stageList=stages.map(s=>`${s.key}. [${s.name}]${s.ex?' — '+s.ex:''}`).join('\n');
-  const schemaDesc=`{"paragraphs":[${stages.map(s=>`{"func":"${s.name}","text":"..."}`).join(',')}]${isF?',"moralia":"..."':',"moralia":""}'}`;
-
-  const styleBlock=isF
-    ?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Cierra con moraleja explícita.'
-    :'ESTILO: Relato contemporáneo. Personajes psicológicos. SIN moraleja. Cierre emocionalmente resolutivo.';
-
-  const prompt=`Escribe un relato del Viaje del Héroe con estas etapas exactamente en este orden (de la 1 a la ${stages.length}):
-${stageList}
-
-Reglas:
-- Un párrafo por etapa, EN EL ORDEN DADO DE 1 A ${stages.length}
-- Personajes con nombres propios, coherentes entre sí
-- NO menciones el número ni el nombre de la etapa en el texto
-- 35-50 palabras por párrafo
-- Continuidad narrativa entre párrafos consecutivos
-${styleBlock}
-
-Devuelve SOLO este JSON (un objeto por etapa, mismo orden que la lista):
-${schemaDesc}`;
-
+  const stages=mmOrder.map((id,i)=>{const s=MONOMITO_STAGES.find(x=>x.id===id);const ex=(mmData[id]&&mmData[id].text)||'';return `${i+1}. ${s.name}${ex?': '+ex:''}`;}).join('\n');
+  const styleBlock=isF?'ESTILO: Cuento popular folclórico. Voz omnisciente atemporal. Cierra con moraleja explícita.':'ESTILO: Relato contemporáneo. Personajes psicológicos. SIN moraleja. Cierre emocionalmente resolutivo.';
+  const jsonSchema='{"paragraphs":[{"func":"Nombre etapa","text":"Texto párrafo"}],'+(isF?'"moralia":"texto"':'"moralia":""}')+'}';
+  let prompt;
+  if(isRT&&curStory){
+    prompt='Reescribe esta historia adaptando la trama al nuevo orden de etapas. IMPORTANTE: mantén exactamente los mismos personajes (nombres, relaciones, mundo), solo cambia cómo se estructura la historia.\n\nHISTORIA ANTERIOR (mismos personajes):\n'+curStory.raw+'\n\nNUEVO ORDEN DE ETAPAS:\n'+stages+'\n\n'+styleBlock+'\n\nSOLO JSON:\n'+jsonSchema;
+  }else{
+    prompt='Compón un relato siguiendo estas etapas del Monomito. UN PÁRRAFO POR ETAPA en el orden dado.\n\nETAPAS:\n'+stages+'\n\n- 400-500 palabras total\n- Personajes con nombres, coherentes\n- NO menciones los nombres de las etapas en el texto\n\n'+styleBlock+'\n\nSOLO JSON:\n'+jsonSchema;
+  }
   isGen=true;showTab('story');resetStory();
   document.getElementById('story-placeholder').style.display='none';
   document.getElementById('story-generating').style.display='block';
   document.getElementById('story-funcs').textContent=mmOrder.map(id=>MONOMITO_STAGES.find(s=>s.id===id).name).join(' → ');
   document.getElementById('story-badge').textContent='☯ MONOMITO';
   try{
-    const raw=await callAI(key,model,prompt,2000,true);
-    let parsed;
-    try{
-      parsed=parseJSON(raw);
-      if(!parsed.paragraphs||!Array.isArray(parsed.paragraphs)) throw new Error('missing paragraphs');
-    }catch(e){
-      document.getElementById('story-generating').style.display='none';
-      document.getElementById('story-placeholder').style.display='block';
-      document.getElementById('story-placeholder').innerHTML='<span style="color:#8a2020;font-family:Cinzel,serif;font-size:12px">Error procesando respuesta. Inténtalo de nuevo o cambia de modelo.</span>';
-      isGen=false;if(rtPending&&rtEnabled){rtPending=false;schedRT();}
-      return;
-    }
+    const raw=await callAI(key,model,prompt,2000);
+    let parsed;try{parsed=parseJSON(raw);}catch(e){parsed={paragraphs:[{func:'',text:raw}],moralia:''};}
     document.getElementById('story-generating').style.display='none';
     const body=document.getElementById('story-body');
     curStory={paragraphs:parsed.paragraphs,moralia:parsed.moralia||'',raw:parsed.paragraphs.map(p=>'['+p.func+']\n'+p.text).join('\n\n')};
@@ -1188,482 +1131,25 @@ ${schemaDesc}`;
   isGen=false;if(rtPending&&rtEnabled){rtPending=false;schedRT();}
 }
 
-const API_LINKS={groq:'https://console.groq.com/keys',mistral:'https://console.mistral.ai/api-keys/',gemini:'https://aistudio.google.com/app/apikey',claude:'https://console.anthropic.com/settings/keys'};
-const API_PLACEHOLDERS={groq:'API key Groq…',mistral:'API key Mistral…',gemini:'API key Google…',claude:'API key Anthropic…'};
-
-function loadSavedKey(model){
-  try{const k=localStorage.getItem('ppc_key_'+model);if(k){document.getElementById('api-key').value=k;}}catch(e){}
-}
-function saveCurrentKey(){
-  const model=document.getElementById('model-sel').value;
-  const key=document.getElementById('api-key').value.trim();
-  try{localStorage.setItem('ppc_key_'+model,key);
-    const btn=document.getElementById('btn-save-key');btn.textContent='✓';setTimeout(()=>btn.textContent='💾',1500);
-  }catch(e){}
-}
-document.getElementById('btn-save-key').addEventListener('click',saveCurrentKey);
-document.getElementById('model-sel').addEventListener('change',function(){
-  document.getElementById('api-link').href=API_LINKS[this.value]||'#';
-  document.getElementById('api-key').placeholder=API_PLACEHOLDERS[this.value]||'Clave API…';
-  loadSavedKey(this.value);
-});
-// Cargar key guardada del modelo inicial al arrancar
-loadSavedKey('groq');
-
-// ── PHASE SELECTOR ──
-function savePhase(){
-  if(!selectedCard)return;
-  const newPhase=document.getElementById('phase-sel').value;
-  const id=normId(selectedCard.id);
-  // Remove from all groups
-  Object.keys(NARRATIVE_GROUPS).forEach(ph=>{
-    NARRATIVE_GROUPS[ph]=NARRATIVE_GROUPS[ph].filter(x=>normId(x)!==id);
-    PHASE[id]=null;
-  });
-  // Add to new group
-  NARRATIVE_GROUPS[newPhase].push(id);PHASE[id]=newPhase;
-  // Persist in custom
-  if(!custom[selectedCard.id])custom[selectedCard.id]={};
-  custom[selectedCard.id].phase=newPhase;saveC();
-  renderSpread();
-  const btn=document.querySelector('#stab-config .btn-dk');btn.textContent='✓ Guardado';
-  setTimeout(()=>btn.textContent='Guardar fase',1500);
-}
-
-// patch showSidebar to populate phase selector
-// ── MONOMITO DATA ──
-const MONOMITO_STAGES=[
-  {id:1,name:'Mundo Ordinario',desc:'El héroe se nos presenta en su entorno cotidiano, antes de que comience la aventura. Es el punto de referencia emocional al que el relato vuelve transformado.',example:'Harry vive en el armario bajo la escalera. Luke cultiva humedad en Tatooine. Frodo fuma pipa en la Comarca.',propp:['alejamiento']},
-  {id:2,name:'Llamada a la Aventura',desc:'Un heraldo anuncia que el mundo ordinario ha cambiado o que existe algo más allá. La carencia o el daño activan el deseo de actuar.',example:'Gandalf dice a Frodo que debe destruir el Anillo. R2-D2 entrega el mensaje de Leia. La araña muerde a Peter Parker.',propp:['carencia','dano','informacion']},
-  {id:3,name:'Rechazo de la Llamada',desc:'El héroe duda, teme o rechaza la aventura. Este momento humaniza al protagonista y prepara su transformación posterior.',example:'Frodo es reacio a abandonar la Comarca. Luke duda ante la propuesta de Obi-Wan. Neo no sabe si lo que ve es real.',propp:['desobediencia','prohibicion']},
-  {id:4,name:'Encuentro con el Mentor',desc:'Una figura sabia entrega al héroe conocimiento, objeto mágico o confianza para afrontar lo desconocido.',example:'Obi-Wan entrena a Luke. Morfeo ofrece la píldora roja. El hada madrina equipa a Cenicienta.',propp:['mediacion','donacion']},
-  {id:5,name:'Cruce del Umbral',desc:'El héroe abandona definitivamente el mundo ordinario y entra en el mundo especial. No hay vuelta atrás.',example:'La Comunidad inicia el viaje hacia Mordor. Neo toma la píldora roja. Harry entra por primera vez al Callejón Diagon.',propp:['partida','aceptacion','complicidad']},
-  {id:6,name:'Pruebas, Aliados y Enemigos',desc:'El héroe aprende las reglas del mundo especial a través de una serie de pruebas menores. Forma alianzas y descubre sus primeros enemigos.',example:'Harry se adapta a Hogwarts. Han Solo y Chewbacca se unen a Luke. Spider-Man comienza su vida heroica.',propp:['viaje','reaccion','interrogatorio','engano']},
-  {id:7,name:'Aproximación a la Caverna',desc:'El héroe se prepara para la prueba mayor. Hay un momento de calma tensa antes de la crisis central.',example:'Harry planea recuperar la Piedra Filosofal. La Estrella de la Muerte destruye Alderaan. Nala convence a Simba.',propp:['tarea','trampa']},
-  {id:8,name:'Ordalía',desc:'La crisis central. El héroe enfrenta su mayor miedo o enemigo. A menudo hay una muerte simbólica o literal de la que renacerá transformado.',example:'Obi-Wan se sacrifica ante Darth Vader. Simba enfrenta la verdad sobre Mufasa. Frodo es traicionado por Gollum.',propp:['combate','fracaso','marca']},
-  {id:9,name:'Recompensa',desc:'Tras superar la ordalía, el héroe obtiene la recompensa: objeto, conocimiento, amor o poder que buscaba.',example:'Harry llega a la Piedra Filosofal. Neo acepta su identidad como el Elegido. Simba decide reclamar su reino.',propp:['exito','solucion']},
-  {id:10,name:'Camino de Regreso',desc:'El héroe inicia el retorno al mundo ordinario, pero el peligro aún no ha terminado. La recompensa debe protegerse.',example:'Luke participa en el ataque a la Estrella de la Muerte. Spider-Man lucha contra el Duende Verde. Frodo se acerca al Monte.',propp:['regreso','persecucion','socorro']},
-  {id:11,name:'Resurrección',desc:'El clímax final. El héroe debe aplicar todo lo aprendido en una última prueba que transforma su ser para siempre.',example:'Neo muere y resucita como el Elegido. Simba derrota a Scar. Luke usa la Fuerza para destruir la Estrella de la Muerte.',propp:['reconocimiento','desenmascaramiento','disfraz']},
-  {id:12,name:'Retorno con el Elixir',desc:'El héroe regresa al mundo ordinario transformado, portando el elixir: el conocimiento, el objeto o la sabiduría que beneficia a su comunidad.',example:'Frodo regresa a la Comarca transformado. Neo libera la mente humana. Simba se convierte en rey.',propp:['castigo','boda']}
-];
-
-let mmData={};
-let mmSelected=null;
-let mmOrder=[1,2,3,4,5,6,7,8,9,10,11,12]; // current segment order
-let mmRotation=0; // visual rotation of the wheel in degrees
-
-function loadMM(){
-  try{
-    const d=sessionStorage.getItem('ppc_mm');
-    if(d){const p=JSON.parse(d);mmData=p.data||p;mmOrder=p.order||[1,2,3,4,5,6,7,8,9,10,11,12];mmRotation=p.rotation||0;}
-  }catch(e){}
-}
-function saveMM(){
-  try{sessionStorage.setItem('ppc_mm',JSON.stringify({data:mmData,order:mmOrder,rotation:mmRotation}));}catch(e){}
-  // Trigger real-time regen if active
-  if(typeof rtEnabled!=='undefined' && rtEnabled && typeof storySrc!=='undefined' && storySrc==='monomito'){
-    schedRT();
-  }
-}
-
-function renderMMTimeline(){
-  const tl=document.getElementById('tl-mm');
-  tl.innerHTML='';
-  let tlDragSrc=null;
-
-  // Split into two rows of 6
-  const rows=[[...mmOrder.slice(0,6)],[...mmOrder.slice(6,12)]];
-
-  rows.forEach((row,ri)=>{
-    const rowEl=document.createElement('div');
-    rowEl.className='tl-mm-row';
-    row.forEach((id,ii)=>{
-      const globalIdx=ri*6+ii;
-      if(ii>0){
-        const arr=document.createElement('span');
-        arr.className='tl-mm-arrow';
-        arr.textContent='→';
-        rowEl.appendChild(arr);
-      }
-      const stage=MONOMITO_STAGES.find(s=>s.id===id);
-      const sp=document.createElement('span');
-      const isActive=mmSelected===id;
-      const isDone=!!(mmData[id]&&mmData[id].text);
-      sp.className='tl-mm-item'+(isActive?' active':isDone?' done':'');
-      sp.textContent=stage.id+'. '+stage.name;
-      sp.draggable=true;
-      sp.dataset.stageId=id;
-      sp.addEventListener('click',()=>selectMMStage(id));
-      sp.addEventListener('dragstart',e=>{
-        tlDragSrc=globalIdx;
-        e.dataTransfer.effectAllowed='move';
-        setTimeout(()=>sp.style.opacity='0.4',0);
-      });
-      sp.addEventListener('dragend',()=>{sp.style.opacity='';});
-      sp.addEventListener('dragover',e=>{e.preventDefault();sp.style.outline='2px solid var(--ink)';});
-      sp.addEventListener('dragleave',()=>{sp.style.outline='';});
-      sp.addEventListener('drop',e=>{
-        e.preventDefault();sp.style.outline='';
-        if(tlDragSrc!==null && tlDragSrc!==globalIdx){
-          const newOrder=[...mmOrder];
-          const [item]=newOrder.splice(tlDragSrc,1);
-          newOrder.splice(globalIdx,0,item);
-          mmOrder=newOrder;
-          saveMM();
-          buildWheel();
-        }
-        tlDragSrc=null;
-      });
-      rowEl.appendChild(sp);
-    });
-    tl.appendChild(rowEl);
-  });
-}
-
-function buildWheel(){
-  const svg=document.getElementById('monomito-svg');
-  svg.innerHTML='';
-  const n=12, R=210, r=94, cx=0, cy=0;
-  const POP=26;
-
-  // Outer dashed ring (fixed, doesn't rotate)
-  const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');
-  ring.setAttribute('cx',cx);ring.setAttribute('cy',cy);ring.setAttribute('r',R+16);
-  ring.setAttribute('fill','none');ring.setAttribute('stroke','var(--rule)');
-  ring.setAttribute('stroke-width','0.7');ring.setAttribute('stroke-dasharray','4 6');
-  svg.appendChild(ring);
-
-  // ── ROTATING GROUP — all segments live here ──
-  const wheelG=document.createElementNS('http://www.w3.org/2000/svg','g');
-  wheelG.id='mm-wheel-g';
-  wheelG.setAttribute('transform',`rotate(${mmRotation})`);
-  svg.appendChild(wheelG);
-
-  // Inner circle — sits ON TOP of wheelG, stays fixed, is the drag handle
-  const inner=document.createElementNS('http://www.w3.org/2000/svg','circle');
-  inner.setAttribute('cx',cx);inner.setAttribute('cy',cy);inner.setAttribute('r',r-5);
-  inner.setAttribute('fill','var(--white)');inner.setAttribute('stroke','var(--ink)');inner.setAttribute('stroke-width','2');
-  inner.style.cursor='grab';
-  svg.appendChild(inner);
-
-  // Center label (also fixed, on top)
-  const ct=document.createElementNS('http://www.w3.org/2000/svg','text');
-  ct.setAttribute('x',0);ct.setAttribute('y',6);ct.setAttribute('text-anchor','middle');
-  ct.setAttribute('font-family','UnifrakturMaguntia,serif');ct.setAttribute('font-size','16');
-  ct.setAttribute('fill','var(--ink)');ct.textContent='Monomito';
-  ct.style.pointerEvents='none';
-  svg.appendChild(ct);
-
-  const slotAngle = 2*Math.PI/n;
-
-  const getAngleDeg=e=>{
-    const rect=svg.getBoundingClientRect();
-    const mx=((e.clientX-rect.left)/rect.width)*500-250;
-    const my=((e.clientY-rect.top)/rect.height)*500-250;
-    return Math.atan2(my,mx)*180/Math.PI;
-  };
-  const getAngleRad=e=>{
-    const rect=svg.getBoundingClientRect();
-    const mx=((e.clientX-rect.left)/rect.width)*500-250;
-    const my=((e.clientY-rect.top)/rect.height)*500-250;
-    return Math.atan2(my,mx);
-  };
-
-  // ── WHEEL ROTATION — drag center circle only ──
-  let rotDragStart=null, rotBase=mmRotation;
-  let segmentDragActive=false; // set true while dragging a segment
-  inner.addEventListener('mousedown',ev=>{
-    if(segmentDragActive)return; // don't spin while reordering
-    ev.preventDefault();ev.stopPropagation();
-    rotDragStart=getAngleDeg(ev);
-    rotBase=mmRotation;
-    inner.style.cursor='grabbing';
-    const onMove=e=>{
-      const a=getAngleDeg(e);
-      let da=a-rotDragStart;
-      while(da>180)da-=360;while(da<-180)da+=360;
-      mmRotation=rotBase+da;
-      wheelG.setAttribute('transform',`rotate(${mmRotation})`);
-    };
-    const onUp=()=>{
-      inner.style.cursor='grab';
-      saveMM();
-      document.removeEventListener('mousemove',onMove);
-      document.removeEventListener('mouseup',onUp);
-    };
-    document.addEventListener('mousemove',onMove);
-    document.addEventListener('mouseup',onUp);
-  });
-
-  for(let i=0;i<n;i++){
-    const stageId=mmOrder[i];
-    const stage=MONOMITO_STAGES.find(s=>s.id===stageId);
-    const angle   = slotAngle*i - Math.PI/2;
-    const nextAng = angle + slotAngle;
-    const midAng  = angle + slotAngle/2;
-    const isActive= mmSelected===stageId;
-    const isDone  = !!(mmData[stageId]&&mmData[stageId].text);
-
-    const mkPath=(ri,ro,a0,a1)=>{
-      const x1=cx+ri*Math.cos(a0),y1=cy+ri*Math.sin(a0);
-      const x2=cx+ro*Math.cos(a0),y2=cy+ro*Math.sin(a0);
-      const x3=cx+ro*Math.cos(a1),y3=cy+ro*Math.sin(a1);
-      const x4=cx+ri*Math.cos(a1),y4=cy+ri*Math.sin(a1);
-      return `M${x1} ${y1} L${x2} ${y2} A${ro} ${ro} 0 0 1 ${x3} ${y3} L${x4} ${y4} A${ri} ${ri} 0 0 0 ${x1} ${y1}Z`;
-    };
-
-    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    let cls='mm-segment';
-    if(isActive) cls+=' active';
-    if(isDone&&!isActive) cls+=' done';
-    g.setAttribute('class',cls);
-
-    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.setAttribute('class','mm-seg-path');
-    path.setAttribute('d',mkPath(r,R,angle,nextAng));
-    path.setAttribute('stroke','var(--ink)');path.setAttribute('stroke-width','1.3');
-    g.appendChild(path);
-
-    // Number near outer edge (fixed to stage.id — won't change on reorder)
-    const outerR = R - 14;
-    const nx = cx + outerR*Math.cos(midAng), ny = cy + outerR*Math.sin(midAng);
-    const nText=document.createElementNS('http://www.w3.org/2000/svg','text');
-    nText.setAttribute('x',nx);nText.setAttribute('y',ny);
-    nText.setAttribute('text-anchor','middle');nText.setAttribute('dominant-baseline','middle');
-    nText.setAttribute('font-family','Cinzel,serif');nText.setAttribute('font-size','11');
-    nText.setAttribute('font-weight','700');nText.setAttribute('class','mm-seg-num');
-    nText.textContent=stage.id;
-    g.appendChild(nText);
-
-    // Name label rotated along arc
-    const lr=(r+R)/2;
-    const lx=cx+lr*Math.cos(midAng), ly=cy+lr*Math.sin(midAng);
-    const lText=document.createElementNS('http://www.w3.org/2000/svg','text');
-    lText.setAttribute('x',lx);lText.setAttribute('y',ly);
-    lText.setAttribute('text-anchor','middle');lText.setAttribute('dominant-baseline','middle');
-    lText.setAttribute('font-family','Cinzel,serif');lText.setAttribute('font-size','8');
-    lText.setAttribute('class','mm-seg-label');
-    lText.setAttribute('transform',`rotate(${(midAng*180/Math.PI)+90},${lx},${ly})`);
-    const words=stage.name.split(' ');
-    if(words.length>2){
-      const half=Math.ceil(words.length/2);
-      const t1=document.createElementNS('http://www.w3.org/2000/svg','tspan');
-      t1.setAttribute('x',lx);t1.setAttribute('dy','-4.5');t1.textContent=words.slice(0,half).join(' ');
-      const t2=document.createElementNS('http://www.w3.org/2000/svg','tspan');
-      t2.setAttribute('x',lx);t2.setAttribute('dy','10');t2.textContent=words.slice(half).join(' ');
-      lText.appendChild(t1);lText.appendChild(t2);
-    }else{lText.textContent=stage.name;}
-    g.appendChild(lText);
-
-    // Done dot
-    if(isDone){
-      const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
-      dot.setAttribute('cx',cx+(R-10)*Math.cos(midAng));
-      dot.setAttribute('cy',cy+(R-10)*Math.sin(midAng));
-      dot.setAttribute('r','4');
-      dot.setAttribute('class','mm-done-dot');
-      g.appendChild(dot);
-    }
-
-    const applyPop=(active)=>{
-      if(active){
-        const dx=Math.cos(midAng)*POP, dy=Math.sin(midAng)*POP;
-        g.setAttribute('transform',`translate(${dx},${dy})`);
-        g.classList.add('mm-dragging');
-      }else{
-        g.removeAttribute('transform');
-        g.classList.remove('mm-dragging');
-      }
-    };
-
-    g.addEventListener('mousedown',ev=>{
-      ev.preventDefault();ev.stopPropagation();
-      segmentDragActive=true;
-      // SET ACTIVE IMMEDIATELY — black on mousedown
-      mmSelected=stageId;
-      svg.querySelectorAll('.mm-segment').forEach(el=>el.classList.remove('active'));
-      g.classList.add('active');
-      let dragStart=getAngleRad(ev);
-      let currentSlot=i, dragging=false;
-      applyPop(true);
-
-      const onMove=e=>{
-        const a=getAngleRad(e);
-        let da=a-dragStart;
-        while(da>Math.PI)da-=2*Math.PI;
-        while(da<-Math.PI)da+=2*Math.PI;
-        const slots=Math.round(da/slotAngle);
-        if(Math.abs(slots)>=1){
-          dragging=true;
-          const newSlot=(currentSlot+slots+n)%n;
-          if(newSlot!==currentSlot){
-            const newOrder=[...mmOrder];
-            const [item]=newOrder.splice(currentSlot,1);
-            newOrder.splice(newSlot,0,item);
-            mmOrder=newOrder;
-            currentSlot=newSlot;
-            dragStart=a;
-            buildWheel();
-            const newG=svg.querySelectorAll('.mm-segment')[newSlot];
-            if(newG){
-              const newMid=slotAngle*newSlot-Math.PI/2+slotAngle/2;
-              const dx=Math.cos(newMid)*POP,dy=Math.sin(newMid)*POP;
-              newG.setAttribute('transform',`translate(${dx},${dy})`);
-              newG.classList.add('mm-dragging');
-            }
-            renderMMTimeline();
-          }
-        }
-      };
-      const onUp=()=>{
-        segmentDragActive=false;
-        document.removeEventListener('mousemove',onMove);
-        document.removeEventListener('mouseup',onUp);
-        applyPop(false);
-        if(!dragging) selectMMStage(stageId);
-        else{saveMM();buildWheel();}
-      };
-      document.addEventListener('mousemove',onMove);
-      document.addEventListener('mouseup',onUp);
-    });
-
-    wheelG.appendChild(g);
-  }
-  renderMMTimeline();
-}
-
-
-function selectMMStage(id){
-  mmSelected=id;
-  buildWheel(); // redraws with active class
-  const stage=MONOMITO_STAGES.find(s=>s.id===id);
-  const pos=mmOrder.indexOf(id);
-  document.getElementById('mm-stage-num-label').textContent='ETAPA '+(pos+1)+' · MONOMITO';
-  document.getElementById('mm-stage-name-label').textContent=stage.name;
-  document.getElementById('monomito-empty').style.display='none';
-  document.getElementById('monomito-detail').style.display='block';
-  document.getElementById('mm-stage-desc').textContent=stage.desc;
-  document.getElementById('mm-stage-example').textContent=stage.example;
-  const userText=(mmData[id]&&mmData[id].text)||'';
-  const ut=document.getElementById('mm-user-text');
-  ut.textContent=userText||'(sin contenido — pulsa ✎ para editar)';
-  ut.style.fontStyle=userText?'normal':'italic';
-  ut.style.color=userText?'var(--ink)':'var(--rule)';
-  document.getElementById('mm-edit-area').style.display='none';
-  document.getElementById('mm-save-btn').style.display='none';
-  const container=document.getElementById('mm-propp-cards');container.innerHTML='';
-  const allCards=[...CARDS_DATA,...(custom.__extra||[])];
-  stage.propp.forEach(pid=>{
-    const card=allCards.find(c=>normId(c.id)===normId(pid));
-    if(!card)return;
-    const div=document.createElement('div');div.className='spread-card';
-    const img=document.createElement('img');img.src=getImg(card.id);img.alt=card.title;
-    const lbl=document.createElement('div');lbl.className='spread-card-name';lbl.textContent=card.title;
-    div.appendChild(img);div.appendChild(lbl);
-    div.addEventListener('click',()=>{selectCard(card);showTab('card');});
-    container.appendChild(div);
-  });
-}
-
-function toggleMMEdit(){
-  const ea=document.getElementById('mm-edit-area'),sv=document.getElementById('mm-save-btn');
-  if(ea.style.display==='block'){ea.style.display='none';sv.style.display='none';}
-  else{ea.value=(mmData[mmSelected]&&mmData[mmSelected].text)||'';ea.style.display='block';sv.style.display='inline-block';ea.focus();}
-}
-function saveMMText(){
-  if(!mmSelected)return;
-  if(!mmData[mmSelected])mmData[mmSelected]={};
-  mmData[mmSelected].text=document.getElementById('mm-edit-area').value.trim();
-  saveMM();selectMMStage(mmSelected);
-}
-let mmScale=1;
-function mmZoom(delta){
-  mmScale=Math.min(2.2,Math.max(0.4,mmScale+delta));
-  document.getElementById('monomito-svg').style.transform=`scale(${mmScale})`;
-}
-function mmZoomReset(){
-  mmScale=1;
-  document.getElementById('monomito-svg').style.transform='scale(1)';
-}
-
-function clearMonomito(){
-  mmData={};mmOrder=[1,2,3,4,5,6,7,8,9,10,11,12];mmRotation=0;saveMM();mmSelected=null;
-  buildWheel();
-  document.getElementById('monomito-empty').style.display='flex';
-  document.getElementById('monomito-detail').style.display='none';
-  document.getElementById('mm-stage-num-label').textContent='';
-  document.getElementById('mm-stage-name-label').textContent='';
-}
-
-function downloadMMFragments(){
-  const lines=[];
-  lines.push('MONOMITO — FRAGMENTOS NARRATIVOS');
-  lines.push('='.repeat(40));
-  mmOrder.forEach((id,i)=>{
-    const stage=MONOMITO_STAGES.find(s=>s.id===id);
-    const text=(mmData[id]&&mmData[id].text)||'';
-    lines.push('');
-    lines.push('ETAPA '+(i+1)+': '+stage.name.toUpperCase());
-    lines.push('-'.repeat(30));
-    lines.push(text||'(sin contenido)');
-  });
-  const content=lines.join('\n');
-  // Show copy modal — download blocked in sandboxed iframe
-  let modal=document.getElementById('mm-export-modal');
-  if(!modal){
-    modal=document.createElement('div');
-    modal.id='mm-export-modal';
-    modal.style.cssText='position:fixed;inset:0;background:rgba(14,12,8,0.75);z-index:3000;display:flex;align-items:center;justify-content:center';
-    modal.innerHTML=`
-      <div style="background:var(--white);border:3px solid var(--black);box-shadow:10px 10px 0 var(--ink);padding:24px 28px;max-width:560px;width:90%;position:relative;max-height:80vh;display:flex;flex-direction:column">
-        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:2px;color:var(--ink-lt);margin-bottom:10px;text-transform:uppercase">Fragmentos del Monomito</div>
-        <textarea id="mm-export-ta" readonly style="flex:1;min-height:300px;background:var(--paper);border:2px solid var(--ink);color:var(--black);font-family:'EB Garamond',serif;font-size:13px;padding:10px;resize:none;overflow-y:auto;white-space:pre;font-variant-ligatures:none"></textarea>
-        <div style="display:flex;gap:10px;margin-top:12px;justify-content:flex-end">
-          <button class="btn btn-dk btn-sm" id="mm-copy-btn" onclick="
-            document.getElementById('mm-export-ta').select();
-            document.execCommand('copy');
-            this.textContent='✓ Copiado';
-            setTimeout(()=>this.textContent='⎘ Copiar todo',1800);
-          ">⎘ Copiar todo</button>
-          <button class="btn btn-lt btn-sm" onclick="document.getElementById('mm-export-modal').style.display='none'">Cerrar</button>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-  }
-  document.getElementById('mm-export-ta').value=content;
-  modal.style.display='flex';
-}
-
-// ── Shared AI caller ──
-async function callAI(key,model,prompt,maxTokens,forceJson){
-  maxTokens=maxTokens||2000;
+async function callAI(key,model,prompt,maxTokens){
+  maxTokens=maxTokens||1800;
   if(model==='claude'){
-    const body={model:'claude-sonnet-4-6',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]};
-    if(forceJson) body.system='Responde ÚNICAMENTE con JSON válido. Sin texto adicional. Sin bloques de código markdown.';
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify(body)});
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
     const d=await r.json();if(d.error)throw new Error(d.error.message);return d.content[0].text;
   }else if(model==='groq'){
-    // Groq supports json_object natively — no markdown wrapping
-    const body={model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:maxTokens};
-    if(forceJson) body.response_format={type:'json_object'};
-    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(body)});
+    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:maxTokens})});
     const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));return d.choices[0].message.content;
   }else if(model==='mistral'){
-    // Mistral supports json_object natively
-    const body={model:'mistral-large-latest',messages:[{role:'user',content:prompt}],max_tokens:maxTokens};
-    if(forceJson) body.response_format={type:'json_object'};
-    const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(body)});
+    const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'mistral-large-latest',messages:[{role:'user',content:prompt}],max_tokens:maxTokens})});
     const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));return d.choices[0].message.content;
   }else if(model==='gemini'){
-    // NOTE: Do NOT use responseMimeType:'application/json' — it rejects prompts that contain
-    // JSON templates with placeholder strings. parseJSON() handles stripping markdown fences.
-    const cfg={maxOutputTokens:maxTokens,thinkingConfig:{thinkingBudget:0}};
-    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:cfg})});
+    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens,thinkingConfig:{thinkingBudget:0}}})});
     const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
     return (d.candidates[0].content.parts||[]).filter(p=>p.text&&!p.thought).map(p=>p.text).join('');
   }
   throw new Error('Modelo desconocido');
 }
+
 
 function parseJSON(raw){
   if(!raw||typeof raw!=='string') throw new Error('empty response');
@@ -1712,7 +1198,7 @@ async function genMonomito(onlyEmpty){
   const prompt=`Genera contenido narrativo para estas etapas del Monomito de Campbell.${proppCtx}\n\nETAPAS:\n${stagesInfo}\n\nPara cada etapa: un párrafo breve (40-60 palabras) que describa lo que ocurre.\n\nSOLO JSON. SIN TEXTO ADICIONAL:\n{"stages":[{"id":1,"text":"texto"},...]}`;
   const btn=document.querySelector('#monomito-actions .btn-dk');btn.textContent='✦ Generando…';btn.disabled=true;
   try{
-    const raw=await callAI(key,model,prompt,2000,true);
+    const raw=await callAI(key,model,prompt,2000);
     const parsed=parseJSON(raw);
     parsed.stages.forEach(s=>{if(!mmData[s.id])mmData[s.id]={};mmData[s.id].text=s.text;});
     saveMM();buildWheel();if(mmSelected)selectMMStage(mmSelected);
